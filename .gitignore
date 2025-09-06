@@ -1,0 +1,128 @@
+# Flutter/Dart
+flutter_netflix/.dart_tool/
+flutter_netflix/.packages
+flutter_netflix/.pub-cache/
+flutter_netflix/.pub/
+flutter_netflix/build/
+flutter_netflix/.flutter-plugins
+flutter_netflix/.flutter-plugins-dependencies
+flutter_netflix/.metadata
+flutter_netflix/.idea/
+flutter_netflix/*.iml
+flutter_netflix/*.ipr
+flutter_netflix/*.iws
+flutter_netflix/.vscode/
+flutter_netflix/.fvm/
+
+# Android
+flutter_netflix/android/.gradle/
+flutter_netflix/android/captures/
+flutter_netflix/android/gradlew
+flutter_netflix/android/gradlew.bat
+flutter_netflix/android/local.properties
+flutter_netflix/android/**/GeneratedPluginRegistrant.java
+flutter_netflix/android/key.properties
+flutter_netflix/android/.idea/
+flutter_netflix/android/app/debug
+flutter_netflix/android/app/profile
+flutter_netflix/android/app/release
+
+# iOS
+flutter_netflix/ios/Flutter/App.framework
+flutter_netflix/ios/Flutter/Flutter.framework
+flutter_netflix/ios/Flutter/Flutter.podspec
+flutter_netflix/ios/Flutter/Generated.xcconfig
+flutter_netflix/ios/Flutter/ephemeral/
+flutter_netflix/ios/Flutter/app.flx
+flutter_netflix/ios/Flutter/app.zip
+flutter_netflix/ios/Flutter/flutter_assets/
+flutter_netflix/ios/ServiceDefinitions.json
+flutter_netflix/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+flutter_netflix/macos/Flutter/GeneratedPluginRegistrant.swift
+flutter_netflix/macos/Flutter/ephemeral/
+
+# Windows
+flutter_netflix/windows/flutter/generated_plugin_registrant.cc
+flutter_netflix/windows/flutter/generated_plugin_registrant.h
+flutter_netflix/windows/flutter/generated_plugins.cmake
+
+# Linux
+flutter_netflix/linux/flutter/generated_plugin_registrant.cc
+flutter_netflix/linux/flutter/generated_plugin_registrant.h
+flutter_netflix/linux/flutter/generated_plugins.cmake
+
+# Node.js (Backend)
+netflix_backend/node_modules/
+netflix_backend/npm-debug.log*
+netflix_backend/yarn-debug.log*
+netflix_backend/yarn-error.log*
+netflix_backend/.env
+netflix_backend/.env.local
+netflix_backend/.env.development.local
+netflix_backend/.env.test.local
+netflix_backend/.env.production.local
+
+# Database
+netflix_backend/database.sqlite
+netflix_backend/database.sqlite3
+netflix_backend/*.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
