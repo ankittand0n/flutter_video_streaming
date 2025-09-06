@@ -6,14 +6,14 @@ A complete Netflix clone built with Flutter (frontend) and Node.js (backend), fe
 
 ```
 Development/
-├── flutter_netflix/          # Flutter mobile/web app (Namkeen TV)
-├── netflix_backend/          # Node.js/Express API backend
+├── frontend/                 # Flutter mobile/web app (Namkeen TV)
+├── backend/                  # Node.js/Express API backend
 └── README.md                 # This file
 ```
 
 ## 📱 Flutter App (Namkeen TV)
 
-**Location:** `flutter_netflix/`
+**Location:** `frontend/`
 
 A cross-platform streaming app built with Flutter that works on:
 - ✅ Android
@@ -31,20 +31,20 @@ A cross-platform streaming app built with Flutter that works on:
 
 ### Quick Start
 ```bash
-cd flutter_netflix
+cd frontend
 flutter pub get
 flutter run
 ```
 
 ### Building APK
 ```bash
-cd flutter_netflix
+cd frontend
 flutter build apk --debug
 ```
 
 ## 🚀 Backend API (Node.js)
 
-**Location:** `netflix_backend/`
+**Location:** `backend/`
 
 A RESTful API built with Node.js and Express providing:
 - User authentication and management
@@ -61,7 +61,7 @@ A RESTful API built with Node.js and Express providing:
 
 ### Quick Start
 ```bash
-cd netflix_backend
+cd backend
 npm install
 npm start
 ```
@@ -83,12 +83,12 @@ npm start
 1. **Clone the repository**
 2. **Setup Flutter app:**
    ```bash
-   cd flutter_netflix
+   cd frontend
    flutter pub get
    ```
 3. **Setup Backend:**
    ```bash
-   cd netflix_backend
+   cd backend
    npm install
    cp env.example .env
    # Edit .env with your API keys
