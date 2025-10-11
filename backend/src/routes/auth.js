@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
-const User = require('../models/User');
+const { User } = require('../models');
 const { auth, authRateLimit } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 

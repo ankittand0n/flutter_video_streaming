@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model rating {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  contentId   String
+  contentType String
+  rating      Int
+  review      String?
+  title       String?
+  helpful     String?
+  spoiler     Boolean  @default(false)
+  tags        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Rating_userId_fkey")
+
+  @@index([userId], map: "Rating_userId_fkey")
+}
+
+model user {
+  id                   Int         @id @default(autoincrement())
+  email                String      @unique(map: "User_email_key")
+  password             String
+  username             String      @unique(map: "User_username_key")
+  profileName          String
+  profileAvatar        String?
+  profileAge           Int?
+  profileLanguage      String?
+  profileMaturity      String?
+  preferencesGenres    String?
+  preferencesTypes     String?
+  preferencesLangs     String?
+  preferencesSubtitles Boolean     @default(false)
+  subscriptionPlan     String      @default("basic")
+  subscriptionStatus   String      @default("active")
+  subscriptionStart    DateTime    @default(now())
+  subscriptionEnd      DateTime?
+  watchHistory         String?
+  isActive             Boolean     @default(true)
+  lastLogin            DateTime    @default(now())
+  verificationToken    String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  rating               rating[]
+  watchlist            watchlist[]
+}
+
+model watchlist {
+  id           Int       @id @default(autoincrement())
+  title        String
+  addedAt      DateTime  @default(now())
+  backdropPath String?
+  contentId    String
+  contentType  String
+  createdAt    DateTime  @default(now())
+  genreIds     String?
+  notes        String?
+  overview     String?
+  posterPath   String?
+  priority     String    @default("medium")
+  rating       Int?
+  releaseDate  DateTime?
+  tags         String?
+  updatedAt    DateTime @updatedAt
+  userId       Int
+  voteAverage  Float?
+  watched      Boolean   @default(false)
+  watchedAt    DateTime?
+  user         user      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Watchlist_userId_fkey")
+
+  @@index([userId], map: "Watchlist_userId_fkey")
+}
+
+model Movie {
+  id           Int      @id @default(autoincrement())
+  title        String
+  overview     String?
+  release_date DateTime? @map("release_date")
+  vote_average Float?
+  poster_path  String?
+  backdrop_path String?
+  genre_ids    String?
+  original_language String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime? @map("updated_at") @updatedAt
+  video        Boolean?
+  video_url    String?
+  trailer_url  String?
+
+  @@map("movies")
+}
+
+model TvSeries {
+  id           Int      @id @default(autoincrement())
+  title        String
+  overview     String?
+  first_air_date DateTime? @map("first_air_date")
+  last_air_date DateTime? @map("last_air_date")
+  vote_average Float?
+  poster_path  String?
+  backdrop_path String?
+  genre_ids    String?
+  original_language String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime? @map("updated_at") @updatedAt
+  video        Boolean?
+  video_url    String?
+  trailer_url  String?
+
+  @@map("tv_series")
+}
+
+model Season {
+  id           Int      @id @default(autoincrement())
+  tv_series_id Int?     @map("tv_series_id")
+  season_number Int?
+  name         String?
+  overview     String?
+  poster_path  String?
+  air_date     DateTime?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime? @map("updated_at") @updatedAt
+
+  @@map("seasons")
+}
+
+model Genre {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("genres")
+}

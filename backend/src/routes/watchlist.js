@@ -1,5 +1,5 @@
 const express = require('express');
-const Watchlist = require('../models/Watchlist');
+const { Watchlist } = require('../models');
 const { auth } = require('../middleware/auth');
 const { validate, validateQuery } = require('../middleware/validation');
 

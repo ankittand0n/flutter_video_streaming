@@ -12,6 +12,10 @@ const userRoutes = require('./routes/user');
 const tmdbRoutes = require('./routes/tmdb');
 const watchlistRoutes = require('./routes/watchlist');
 const ratingRoutes = require('./routes/rating');
+const moviesRoutes = require('./routes/movies');
+const tvSeriesRoutes = require('./routes/tv_series');
+const seasonsRoutes = require('./routes/seasons');
+const genresRoutes = require('./routes/genres');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -63,6 +67,10 @@ app.use('/api/user', userRoutes);
 app.use('/api/tmdb', tmdbRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/rating', ratingRoutes);
+app.use('/api/movies', moviesRoutes);
+app.use('/api/tv', tvSeriesRoutes);
+app.use('/api/seasons', seasonsRoutes);
+app.use('/api/genres', genresRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

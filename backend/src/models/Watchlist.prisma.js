@@ -1,0 +1,86 @@
+const prisma = require('../prisma/client');
+
+class WatchlistModel {
+  constructor(data) {
+    Object.assign(this, data);
+  }
+
+  async save() {
+    if (this.id) {
+      const updated = await prisma.watchlist.update({ where: { id: this.id }, data: { ...this } });
+      Object.assign(this, updated);
+      return this;
+    }
+    const created = await prisma.watchlist.create({ data: { ...this } });
+    Object.assign(this, created);
+    return this;
+  }
+
+  async markAsWatched(rating = null) {
+    this.watched = true;
+    this.watchedAt = new Date();
+    if (rating) this.rating = rating;
+    await prisma.watchlist.update({ where: { id: this.id }, data: { watched: this.watched, watchedAt: this.watchedAt, rating: this.rating } });
+    return this;
+  }
+
+  async markAsUnwatched() {
+    this.watched = false;
+    this.watchedAt = null;
+    this.rating = null;
+    await prisma.watchlist.update({ where: { id: this.id }, data: { watched: this.watched, watchedAt: this.watchedAt, rating: this.rating } });
+    return this;
+  }
+
+  static async findOne(query) {
+    const where = {};
+    if (query._id || query.id) where.id = Number(query._id || query.id);
+    if (query.userId) where.userId = Number(query.userId);
+    if (query.contentId) where.contentId = query.contentId;
+    if (query.contentType) where.contentType = query.contentType;
+
+    const item = await prisma.watchlist.findFirst({ where });
+    return item ? new WatchlistModel(item) : null;
+  }
+
+  static async find(query) {
+    const where = {};
+    if (query.userId) where.userId = Number(query.userId);
+    if (query.watched !== undefined) where.watched = query.watched;
+    if (query.priority) where.priority = query.priority;
+    if (query.contentType) where.contentType = query.contentType;
+
+    const items = await prisma.watchlist.findMany({ where, orderBy: { addedAt: 'desc' }, take: query.limit ? Number(query.limit) : undefined, skip: query.skip ? Number(query.skip) : undefined });
+    return items.map(i => new WatchlistModel(i));
+  }
+
+  static async countDocuments(query) {
+    const where = {};
+    if (query.userId) where.userId = Number(query.userId);
+    if (query.watched !== undefined) where.watched = query.watched;
+    if (query.priority) where.priority = query.priority;
+    if (query.contentType) where.contentType = query.contentType;
+    return await prisma.watchlist.count({ where });
+  }
+
+  static async findByIdAndUpdate(id, data, opts = {}) {
+    const updated = await prisma.watchlist.update({ where: { id: Number(id) }, data });
+    return new WatchlistModel(updated);
+  }
+
+  static async findOneAndUpdate(query, data, opts = {}) {
+    const item = await WatchlistModel.findOne(query);
+    if (!item) return null;
+    const updated = await prisma.watchlist.update({ where: { id: Number(item.id) }, data });
+    return new WatchlistModel(updated);
+  }
+
+  static async findOneAndDelete(query) {
+    const item = await WatchlistModel.findOne(query);
+    if (!item) return null;
+    const deleted = await prisma.watchlist.delete({ where: { id: Number(item.id) } });
+    return new WatchlistModel(deleted);
+  }
+}
+
+module.exports = WatchlistModel;
