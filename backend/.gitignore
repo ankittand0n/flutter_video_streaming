@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+*/node_modules/
+**/**/node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*/dist/
+**/dist/
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.tmp/
+temp/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
