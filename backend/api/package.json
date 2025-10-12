@@ -4,8 +4,8 @@
   "description": "Backend for Flutter Netflix Clone with authentication, TMDB proxy, and user data management",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node --max-old-space-size=512 src/server.js",
+    "dev": "nodemon --max-old-space-size=512 src/server.js",
     "test": "jest"
   },
   "keywords": [
