@@ -1,7 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { User } = require('../models');
+const prisma = require('../prisma/client');
 const { auth, authRateLimit } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 
@@ -85,10 +86,10 @@ router.post('/login', validate('login'), async (req, res) => {
     let user;
     if (email) {
       console.log('Attempting email login with:', email.toLowerCase());
-      user = await User.findOne({ email: email.toLowerCase() });
+      user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     } else if (username) {
       console.log('Attempting username login with:', username.toLowerCase());
-      user = await User.findOne({ username: username.toLowerCase() });
+      user = await prisma.user.findUnique({ where: { username: username.toLowerCase() } });
     } else {
       return res.status(400).json({
         error: 'Email or username is required'
@@ -111,7 +112,7 @@ router.post('/login', validate('login'), async (req, res) => {
     }
 
     // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
         error: 'Invalid credentials'
@@ -119,16 +120,23 @@ router.post('/login', validate('login'), async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
 
     res.json({
       message: 'Login successful',
       token,
-      user: user.getPublicProfile()
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        profileName: user.profileName
+      }
     });
 
   } catch (error) {

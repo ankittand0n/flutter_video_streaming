@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const prisma = require('../prisma/client');
 
 const auth = async (req, res, next) => {
   try {
@@ -12,7 +12,7 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     
     if (!user) {
       return res.status(401).json({ 
@@ -53,7 +53,10 @@ const optionalAuth = async (req, res, next) => {
     
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId).select('-password');
+      const user = await prisma.user.findUnique({ 
+        where: { id: decoded.userId },
+        select: { id: true, email: true, username: true, profileName: true, isActive: true }
+      });
       
       if (user && user.isActive) {
         req.user = user;

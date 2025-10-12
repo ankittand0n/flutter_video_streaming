@@ -44,10 +44,9 @@ router.put('/profile', validate('updateProfile'), async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(
-      req.user._id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+      req.user.id,
+      updateData
+    );
 
     res.json({
       message: 'Profile updated successfully',
@@ -73,12 +72,12 @@ router.get('/watch-history', async (req, res) => {
     const skip = (page - 1) * limit;
     
     // Build query
-    const query = { userId: req.user._id };
+    const query = { userId: req.user.id };
     if (contentType) query.contentType = contentType;
     if (completed !== undefined) query.completed = completed === 'true';
     
     // Get watch history
-    const watchHistory = await User.findById(req.user._id)
+    const watchHistory = await User.findById(req.user.id)
       .select('watchHistory')
       .slice('watchHistory', [skip, parseInt(limit)])
       .sort({ 'watchHistory.watchedAt': -1 });
@@ -127,7 +126,7 @@ router.post('/watch-history', async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
         error: 'User not found'
@@ -185,7 +184,7 @@ router.delete('/watch-history/:contentId', async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
         error: 'User not found'
@@ -217,7 +216,7 @@ router.delete('/watch-history/:contentId', async (req, res) => {
 // @access  Private
 router.get('/recommendations', async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
+    const user = await User.findById(req.user.id)
       .populate('watchHistory')
       .populate('preferences');
 
@@ -262,7 +261,7 @@ router.get('/recommendations', async (req, res) => {
 // @access  Private
 router.get('/stats', async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
         error: 'User not found'
@@ -339,7 +338,7 @@ router.post('/avatar', async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(
-      req.user._id,
+      req.user.id,
       { 'profile.avatar': avatarUrl },
       { new: true, runValidators: true }
     ).select('-password');
@@ -371,7 +370,7 @@ router.delete('/account', async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
         error: 'User not found'
@@ -387,7 +386,7 @@ router.delete('/account', async (req, res) => {
     }
 
     // Delete user account
-    await User.findByIdAndDelete(req.user._id);
+    await User.findByIdAndDelete(req.user.id);
 
     res.json({
       message: 'Account deleted successfully'

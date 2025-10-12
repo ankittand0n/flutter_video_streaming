@@ -5,7 +5,22 @@ const router = express.Router();
 
 router.post('/', auth, async (req, res) => {
   try {
-    const season = await prisma.season.create({ data: req.body });
+    const seasonData = { ...req.body };
+
+    // Parse date fields
+    if (seasonData.air_date) {
+      seasonData.air_date = new Date(seasonData.air_date);
+    }
+
+    // Parse numeric fields
+    if (seasonData.season_number) {
+      seasonData.season_number = parseInt(seasonData.season_number);
+    }
+    if (seasonData.episode_count) {
+      seasonData.episode_count = parseInt(seasonData.episode_count);
+    }
+
+    const season = await prisma.season.create({ data: seasonData });
     res.status(201).json({ success: true, data: season });
   } catch (error) {
     console.error('Create season error:', error);
@@ -42,7 +57,14 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const updated = await prisma.season.update({ where: { id }, data: req.body });
+    const seasonData = { ...req.body };
+
+    // Parse date fields
+    if (seasonData.air_date) {
+      seasonData.air_date = new Date(seasonData.air_date);
+    }
+
+    const updated = await prisma.season.update({ where: { id }, data: seasonData });
     res.json({ success: true, data: updated });
   } catch (error) {
     console.error('Update season error:', error);

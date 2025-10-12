@@ -4,9 +4,11 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const config = require('./config/config');
 const connectDB = require('./config/database');
+
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const tmdbRoutes = require('./routes/tmdb');
@@ -53,6 +55,9 @@ if (config.rateLimit.enabled) {
 // Body parsing middleware
 app.use(express.json({ limit: config.api.requestLimit }));
 app.use(express.urlencoded({ extended: true, limit: config.api.requestLimit }));
+
+// Static file serving
+app.use('/images', express.static(path.join(__dirname, '../public/images')));
 
 // Compression middleware
 if (config.security.compressionEnabled) {

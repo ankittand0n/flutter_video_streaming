@@ -1,4 +1,8 @@
-const BASE = 'http://localhost:3000/api'
+const BASE = import.meta.env.VITE_API_URL
+
+if (!BASE) {
+  throw new Error('VITE_API_URL environment variable is not defined')
+}
 
 function getHeaders(token?: string) {
   const headers: Record<string,string> = { 'Content-Type': 'application/json' }
@@ -12,6 +16,12 @@ export async function fetchMovies(query: string = '') {
   return res.json()
 }
 
+export async function fetchTVSeries(query: string = '') {
+  const url = `${BASE}/tv${query ? `?search=${encodeURIComponent(query)}` : ''}`
+  const res = await fetch(url)
+  return res.json()
+}
+
 export async function fetchGenres() {
   const res = await fetch(`${BASE}/genres`)
   return res.json()
@@ -19,15 +29,6 @@ export async function fetchGenres() {
 
 export async function addToWatchlist(token: string, body: any) {
   const res = await fetch(`${BASE}/watchlist`, {
-    method: 'POST',
-    headers: getHeaders(token),
-    body: JSON.stringify(body)
-  })
-  return res.json()
-}
-
-export async function postRating(token: string, body: any) {
-  const res = await fetch(`${BASE}/rating`, {
     method: 'POST',
     headers: getHeaders(token),
     body: JSON.stringify(body)
@@ -58,4 +59,4 @@ export async function signup(data: any) {
   return res.json()
 }
 
-export default { fetchMovies, fetchGenres, addToWatchlist, postRating, login, signup }
+export default { fetchMovies, fetchTVSeries, fetchGenres, addToWatchlist, login, signup }

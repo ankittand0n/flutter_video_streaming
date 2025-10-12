@@ -61,7 +61,14 @@ class UserModel {
   toJSON() {
     const obj = { ...this };
     delete obj.password;
+    obj._id = obj.id; // Add _id for Mongoose compatibility
     return obj;
+  }
+
+  // Mongoose-style select method (for compatibility)
+  select(fields) {
+    // For now, just return this (we can implement field selection later if needed)
+    return this;
   }
 
   getPublicProfile() {
@@ -135,6 +142,7 @@ class UserModel {
   }
 
   static async findById(id) {
+    if (!id || isNaN(Number(id))) return null;
     const u = await prisma.user.findUnique({ where: { id: Number(id) } });
     return u ? new UserModel(u) : null;
   }
