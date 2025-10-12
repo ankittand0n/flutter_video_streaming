@@ -101,8 +101,8 @@ apiRouter.use('/tv', tvSeriesRoutes);
 apiRouter.use('/seasons', seasonsRoutes);
 apiRouter.use('/genres', genresRoutes);
 
-// Mount all routes under API prefix
-app.use(config.server.apiPrefix, apiRouter);
+// Mount all routes at root level (no API prefix)
+app.use(apiRouter);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -128,7 +128,7 @@ const startServer = () => {
       console.log(`🚀 Server running on http://${config.server.host}:${config.server.port}`);
       console.log(`📱 Environment: ${config.server.env}`);
       console.log(`🔗 Health check: http://${config.server.host}:${config.server.port}/health`);
-      console.log(`🌐 API Base URL: http://${config.server.host}:${config.server.port}${config.server.apiPrefix}`);
+      console.log(`🌐 API Base URL: http://${config.server.host}:${config.server.port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -136,6 +136,9 @@ const startServer = () => {
   }
 };
 
-startServer();
+// Start server only if this file is run directly (not required as module)
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;

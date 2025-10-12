@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node --max-old-space-size=512 src/server.js",
     "dev": "nodemon --max-old-space-size=512 src/server.js",
-    "test": "jest"
+    "test": "jest",
+    "test:integration": "jest --testPathPattern=integration.test.js",
+    "test:numeric": "jest --testPathPattern=numeric-fields.test.js",
+    "test:rating": "jest --testPathPattern=rating.test.js"
   },
   "keywords": [
     "netflix",

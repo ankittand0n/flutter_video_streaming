@@ -70,12 +70,12 @@ describe('Full CRUD test for all tables', () => {
   });
 
   test('TV Series & Season CRUD', async () => {
-    const tv = await prisma.tvSeries.create({ data: { title: `Test TV ${Date.now()}`, overview: 'TV overview', genre_ids: JSON.stringify([1]) } });
+    const tv = await prisma.tvSeries.create({ data: { name: `Test TV ${Date.now()}`, overview: 'TV overview', genre_ids: JSON.stringify([1]) } });
     expect(tv).toHaveProperty('id');
     created.tvId = tv.id;
 
     const found = await prisma.tvSeries.findUnique({ where: { id: tv.id } });
-    expect(found.title).toBe(tv.title);
+    expect(found.name).toBe(tv.name);
 
     const updatedTv = await prisma.tvSeries.update({ where: { id: tv.id }, data: { vote_average: 8.1 } });
     expect(Number(updatedTv.vote_average)).toBeCloseTo(8.1);
