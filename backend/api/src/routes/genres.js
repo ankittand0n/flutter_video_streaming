@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../prisma/client');
 const { auth } = require('../middleware/auth');
 const router = express.Router();
+const cache = require('../utils/simpleCache');
 
 // Create genre
 router.post('/', auth, async (req, res) => {
@@ -17,7 +18,12 @@ router.post('/', auth, async (req, res) => {
 // List genres
 router.get('/', async (req, res) => {
   try {
-    const data = await prisma.genre.findMany({ orderBy: { createdAt: 'desc' } });
+    const cacheKey = 'genres:list';
+    const cached = cache.get(cacheKey);
+    if (cached) return res.json({ success: true, data: cached, cached: true });
+
+    const data = await prisma.genre.findMany({ orderBy: { createdAt: 'desc' }, take: 100 });
+    cache.set(cacheKey, data, 1000 * 60 * 10); // cache 10 minutes
     res.json({ success: true, data });
   } catch (error) {
     console.error('Get genres error:', error);

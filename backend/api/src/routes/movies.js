@@ -3,6 +3,7 @@ const prisma = require('../prisma/client');
 const { auth } = require('../middleware/auth');
 const { upload } = require('../config/multer');
 const router = express.Router();
+const cache = require('../utils/simpleCache');
 
 // Helper function to add full URLs to image paths
 const addImageUrls = (req, item) => {
@@ -64,16 +65,24 @@ router.post('/', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name: '
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50); // default 10, max 50
     const skip = (page - 1) * limit;
     const where = {};
     if (req.query.genre) where.genre_ids = { contains: req.query.genre };
     if (req.query.search) where.title = { contains: req.query.search };
 
-    const [data, total] = await Promise.all([
-      prisma.movie.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
-      prisma.movie.count({ where })
-    ]);
+    const cacheKey = `movies:list:${page}:${limit}:${JSON.stringify(where)}`;
+    const cached = cache.get(cacheKey);
+    let data, total;
+    if (cached) {
+      ({ data, total } = cached);
+    } else {
+      [data, total] = await Promise.all([
+        prisma.movie.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
+        prisma.movie.count({ where })
+      ]);
+      cache.set(cacheKey, { data, total }, 1000 * 60 * 5); // 5 minutes
+    }
 
     // Add full URLs to image paths
     const transformedData = data.map(item => addImageUrls(req, item));

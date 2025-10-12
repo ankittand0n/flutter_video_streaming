@@ -26,13 +26,14 @@ const config = {
   },
 
   rateLimit: {
-    enabled: process.env.RATE_LIMIT_ENABLED === 'true',
+    // Enable rate limiting by env var or automatically in production
+    enabled: process.env.RATE_LIMIT_ENABLED === 'true' || process.env.NODE_ENV === 'production',
     windowMs: process.env.NODE_ENV === 'development'
       ? parseInt(process.env.DEV_RATE_LIMIT_WINDOW_MS) || 1000
       : parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
     max: process.env.NODE_ENV === 'development'
       ? parseInt(process.env.DEV_RATE_LIMIT_MAX_REQUESTS) || 50
-      : parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+      : parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 60,
     message: process.env.RATE_LIMIT_MESSAGE || 'Too many requests',
     skip: process.env.NODE_ENV === 'development'
   },

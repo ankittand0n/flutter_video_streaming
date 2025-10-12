@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model rating {
@@ -22,7 +23,7 @@ model rating {
   updatedAt   DateTime @updatedAt
   user        user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Rating_userId_fkey")
 
-  @@index([userId], map: "Rating_userId_fkey")
+  @@index([userId], map: "Rating_userId_idx")
 }
 
 model user {
@@ -78,7 +79,7 @@ model watchlist {
   watchedAt    DateTime?
   user         user      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Watchlist_userId_fkey")
 
-  @@index([userId], map: "Watchlist_userId_fkey")
+  @@index([userId], map: "Watchlist_userId_idx")
 }
 
 model Movie {

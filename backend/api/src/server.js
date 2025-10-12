@@ -41,15 +41,18 @@ if (config.cors.enabled) {
   }));
 }
 
-// Rate limiting
+// Rate limiting - attach to apiRouter to limit API endpoints
+let limiter;
 if (config.rateLimit.enabled) {
-  const limiter = rateLimit({
+  limiter = rateLimit({
     windowMs: config.rateLimit.windowMs,
     max: config.rateLimit.max,
     message: config.rateLimit.message,
+    standardHeaders: true,
+    legacyHeaders: false,
     skip: () => config.rateLimit.skip
   });
-  app.use(config.server.apiPrefix, limiter);
+  // Note: limiter will be applied to apiRouter after it's declared below
 }
 
 // Body parsing middleware
@@ -64,9 +67,11 @@ if (config.security.compressionEnabled) {
   app.use(compression());
 }
 
-// Logging middleware
+// Logging middleware - only verbose in development
 if (config.server.isDev) {
   app.use(morgan(config.logging.morganFormat));
+} else if (config.logging.level === 'debug') {
+  app.use(morgan('combined'));
 }
 
 // API routes
@@ -100,6 +105,11 @@ apiRouter.use('/movies', moviesRoutes);
 apiRouter.use('/tv', tvSeriesRoutes);
 apiRouter.use('/seasons', seasonsRoutes);
 apiRouter.use('/genres', genresRoutes);
+
+// Apply rate limiter to apiRouter if enabled
+if (limiter) {
+  apiRouter.use(limiter);
+}
 
 // Mount all routes at root level (no API prefix)
 app.use(apiRouter);
