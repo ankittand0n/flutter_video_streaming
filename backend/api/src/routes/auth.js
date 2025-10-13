@@ -12,9 +12,9 @@ const router = express.Router();
 router.use(rateLimit(authRateLimit));
 
 // Generate JWT token
-const generateToken = (userId) => {
+const generateToken = (userid) => {
   return jwt.sign(
-    { userId },
+    { userid },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
@@ -135,7 +135,7 @@ router.post('/login', validate('login'), async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        profileName: user.profileName
+        profilename: user.profilename
       }
     });
 

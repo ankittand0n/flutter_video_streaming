@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:3000/api';
+  static const String baseUrl = 'http://api.namkeentv.com';
   
   // Movies
   static Future<List<Map<String, dynamic>>> getMovies({
@@ -151,7 +151,7 @@ class ApiService {
     }
     
     // Otherwise, prepend the backend URL
-    final fullUrl = 'http://127.0.0.1:3000$imagePath';
+    final fullUrl = 'http://api.namkeentv.com$imagePath';
     print('Generated image URL: $fullUrl');
     return fullUrl;
   }

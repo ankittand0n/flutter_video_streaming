@@ -35,9 +35,9 @@ class WatchlistModel {
   static async findOne(query) {
     const where = {};
     if (query._id || query.id) where.id = Number(query._id || query.id);
-    if (query.userId) where.userId = Number(query.userId);
-    if (query.contentId) where.contentId = query.contentId;
-    if (query.contentType) where.contentType = query.contentType;
+    if (query.userid) where.userid = Number(query.userid);
+    if (query.contentid) where.contentid = query.contentid;
+    if (query.contenttype) where.contenttype = query.contenttype;
 
     const item = await prisma.watchlist.findFirst({ where });
     return item ? new WatchlistModel(item) : null;
@@ -45,10 +45,10 @@ class WatchlistModel {
 
   static async find(query) {
     const where = {};
-    if (query.userId) where.userId = Number(query.userId);
+    if (query.userid) where.userid = Number(query.userid);
     if (query.watched !== undefined) where.watched = query.watched;
     if (query.priority) where.priority = query.priority;
-    if (query.contentType) where.contentType = query.contentType;
+    if (query.contenttype) where.contenttype = query.contenttype;
 
     const items = await prisma.watchlist.findMany({ where, orderBy: { addedAt: 'desc' }, take: query.limit ? Number(query.limit) : undefined, skip: query.skip ? Number(query.skip) : undefined });
     return items.map(i => new WatchlistModel(i));
@@ -56,10 +56,10 @@ class WatchlistModel {
 
   static async countDocuments(query) {
     const where = {};
-    if (query.userId) where.userId = Number(query.userId);
+    if (query.userid) where.userid = Number(query.userid);
     if (query.watched !== undefined) where.watched = query.watched;
     if (query.priority) where.priority = query.priority;
-    if (query.contentType) where.contentType = query.contentType;
+    if (query.contenttype) where.contenttype = query.contenttype;
     return await prisma.watchlist.count({ where });
   }
 

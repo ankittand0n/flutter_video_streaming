@@ -16,7 +16,7 @@ const Card: React.FC<{ title: string; description?: string; content?: any; token
     <article className="p-4 rounded shadow bg-card border border-red-900/10">
       {content?.poster_path && (
         <img
-          src={`http://localhost:3000${content.poster_path}`}
+          src={`${import.meta.env.VITE_API_URL}${content.poster_path}`}
           alt={title}
           className="w-full h-48 object-cover rounded mb-3"
           onError={(e) => {

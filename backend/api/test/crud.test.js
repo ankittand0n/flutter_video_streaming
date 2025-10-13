@@ -20,7 +20,7 @@ describe('Full CRUD test for all tables', () => {
       if (created.tvId) await prisma.tvSeries.delete({ where: { id: created.tvId } }).catch(() => {});
       if (created.movieId) await prisma.movie.delete({ where: { id: created.movieId } }).catch(() => {});
       if (created.genreId) await prisma.genre.delete({ where: { id: created.genreId } }).catch(() => {});
-      if (created.userId) await prisma.user.delete({ where: { id: created.userId } }).catch(() => {});
+      if (created.userid) await prisma.user.delete({ where: { id: created.userid } }).catch(() => {});
     } catch (e) {
       // ignore
     }
@@ -102,32 +102,31 @@ describe('Full CRUD test for all tables', () => {
   test('User, Watchlist, Rating CRUD', async () => {
     // Create user
     const email = `testuser+${Date.now()}@example.com`;
-    const user = await prisma.user.create({ data: { email, password: 'password123', username: `user${Date.now()}`, profileName: 'Test User' } });
+    const user = await prisma.user.create({ data: { email, password: 'password123', username: `user${Date.now()}`, profilename: 'Test User' } });
     expect(user).toHaveProperty('id');
-    created.userId = user.id;
+    created.userid = user.id;
 
     // Create watchlist item
-    const w = await prisma.watchlist.create({ data: { userId: user.id, contentId: '9999', contentType: 'movie', title: 'WL Item' } });
+    const w = await prisma.watchlist.create({ data: { userid: user.id, contentid: '9999', contenttype: 'movie', title: 'WL Item' } });
     expect(w).toHaveProperty('id');
     created.watchlistId = w.id;
 
     const foundW = await prisma.watchlist.findUnique({ where: { id: w.id } });
     expect(foundW.title).toBe('WL Item');
 
-    const updatedW = await prisma.watchlist.update({ where: { id: w.id }, data: { watched: true, rating: 9 } });
-    expect(updatedW.watched).toBe(true);
-    expect(updatedW.rating).toBe(9);
+    const updatedW = await prisma.watchlist.update({ where: { id: w.id }, data: { title: 'Updated WL Item' } });
+    expect(updatedW.title).toBe('Updated WL Item');
 
     // Create rating
-    const r = await prisma.rating.create({ data: { userId: user.id, contentId: '9999', contentType: 'movie', rating: 8, title: 'Good' } });
+    const r = await prisma.rating.create({ data: { userid: user.id, contentid: '9999', contenttype: 'movie', rating: 8.5 } });
     expect(r).toHaveProperty('id');
     created.ratingId = r.id;
 
     const foundR = await prisma.rating.findUnique({ where: { id: r.id } });
-    expect(foundR.rating).toBe(8);
+    expect(Number(foundR.rating)).toBe(8.5);
 
-    const updatedR = await prisma.rating.update({ where: { id: r.id }, data: { rating: 7 } });
-    expect(updatedR.rating).toBe(7);
+    const updatedR = await prisma.rating.update({ where: { id: r.id }, data: { rating: 7.0 } });
+    expect(Number(updatedR.rating)).toBe(7.0);
 
     // delete rating and watchlist
     await prisma.rating.delete({ where: { id: r.id } });
@@ -138,6 +137,6 @@ describe('Full CRUD test for all tables', () => {
 
     // delete user
     await prisma.user.delete({ where: { id: user.id } });
-    delete created.userId;
+    delete created.userid;
   });
 });

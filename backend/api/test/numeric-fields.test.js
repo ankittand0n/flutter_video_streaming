@@ -1,7 +1,7 @@
 const axios = require('axios');
 const FormData = require('form-data');
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://api.namkeentv.com';
 
 describe('Numeric Field Handling Tests', () => {
   let token = '';

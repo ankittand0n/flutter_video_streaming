@@ -13,13 +13,13 @@ router.use(auth);
 // @access  Private
 router.post('/', validate('watchlistItem'), async (req, res) => {
   try {
-    const { contentId, contentType } = req.body;
+    const { contentid, contenttype } = req.body;
     
     // Check if item already exists in user's watchlist
     const existingItem = await Watchlist.findOne({
-      userId: req.user._id,
-      contentId,
-      contentType
+      userid: req.user._id,
+      contentid,
+      contenttype
     });
 
     if (existingItem) {
@@ -30,7 +30,7 @@ router.post('/', validate('watchlistItem'), async (req, res) => {
 
     // Create new watchlist item
     const watchlistItem = new Watchlist({
-      userId: req.user._id,
+      userid: req.user._id,
       ...req.body
     });
 
@@ -55,15 +55,15 @@ router.post('/', validate('watchlistItem'), async (req, res) => {
 // @access  Private
 router.get('/', validateQuery('pagination'), async (req, res) => {
   try {
-    const { page = 1, limit = 20, watched, priority, contentType, sortBy = 'addedAt', sortOrder = 'desc' } = req.query;
+    const { page = 1, limit = 20, watched, priority, contenttype, sortBy = 'addedAt', sortOrder = 'desc' } = req.query;
     
     const skip = (page - 1) * limit;
     
     // Build query
-    const query = { userId: req.user._id };
+    const query = { userid: req.user._id };
     if (watched !== undefined) query.watched = watched === 'true';
     if (priority) query.priority = priority;
-    if (contentType) query.contentType = contentType;
+    if (contenttype) query.contenttype = contenttype;
     
     // Build sort
     const sort = {};
@@ -109,7 +109,7 @@ router.get('/:id', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOne({
       _id: id,
-      userId: req.user._id
+      userid: req.user._id
     });
 
     if (!watchlistItem) {
@@ -141,14 +141,14 @@ router.put('/:id', async (req, res) => {
     const updateData = req.body;
     
     // Remove fields that shouldn't be updated
-    delete updateData.userId;
-    delete updateData.contentId;
-    delete updateData.contentType;
+    delete updateData.userid;
+    delete updateData.contentid;
+    delete updateData.contenttype;
     
     const watchlistItem = await Watchlist.findOneAndUpdate(
       {
         _id: id,
-        userId: req.user._id
+        userid: req.user._id
       },
       updateData,
       { new: true, runValidators: true }
@@ -183,7 +183,7 @@ router.delete('/:id', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOneAndDelete({
       _id: id,
-      userId: req.user._id
+      userid: req.user._id
     });
 
     if (!watchlistItem) {
@@ -215,7 +215,7 @@ router.post('/:id/watch', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOne({
       _id: id,
-      userId: req.user._id
+      userid: req.user._id
     });
 
     if (!watchlistItem) {
@@ -249,7 +249,7 @@ router.post('/:id/unwatch', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOne({
       _id: id,
-      userId: req.user._id
+      userid: req.user._id
     });
 
     if (!watchlistItem) {
@@ -279,27 +279,27 @@ router.post('/:id/unwatch', async (req, res) => {
 // @access  Private
 router.get('/stats', async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userid = req.user._id;
     
     // Get total counts
-    const total = await Watchlist.countDocuments({ userId });
-    const watched = await Watchlist.countDocuments({ userId, watched: true });
-    const unwatched = await Watchlist.countDocuments({ userId, watched: false });
+    const total = await Watchlist.countDocuments({ userid });
+    const watched = await Watchlist.countDocuments({ userid, watched: true });
+    const unwatched = await Watchlist.countDocuments({ userid, watched: false });
     
     // Get counts by content type
-    const movies = await Watchlist.countDocuments({ userId, contentType: 'movie' });
-    const tvShows = await Watchlist.countDocuments({ userId, contentType: 'tv' });
+    const movies = await Watchlist.countDocuments({ userid, contenttype: 'movie' });
+    const tvShows = await Watchlist.countDocuments({ userid, contenttype: 'tv' });
     
     // Get counts by priority
-    const highPriority = await Watchlist.countDocuments({ userId, priority: 'high' });
-    const mediumPriority = await Watchlist.countDocuments({ userId, priority: 'medium' });
-    const lowPriority = await Watchlist.countDocuments({ userId, priority: 'low' });
+    const highPriority = await Watchlist.countDocuments({ userid, priority: 'high' });
+    const mediumPriority = await Watchlist.countDocuments({ userid, priority: 'medium' });
+    const lowPriority = await Watchlist.countDocuments({ userid, priority: 'low' });
     
     // Get recent additions
-    const recentAdditions = await Watchlist.find({ userId })
+    const recentAdditions = await Watchlist.find({ userid })
       .sort({ addedAt: -1 })
       .limit(5)
-      .select('title contentType addedAt');
+      .select('title contenttype addedAt');
     
     res.json({
       success: true,
@@ -349,15 +349,15 @@ router.post('/bulk', async (req, res) => {
       try {
         // Check if item already exists
         const existingItem = await Watchlist.findOne({
-          userId: req.user._id,
-          contentId: item.contentId,
-          contentType: item.contentType
+          userid: req.user._id,
+          contentid: item.contentid,
+          contenttype: item.contenttype
         });
 
         if (existingItem) {
           errors.push({
-            contentId: item.contentId,
-            contentType: item.contentType,
+            contentid: item.contentid,
+            contenttype: item.contenttype,
             error: 'Item already exists in watchlist'
           });
           continue;
@@ -365,7 +365,7 @@ router.post('/bulk', async (req, res) => {
 
         // Create new watchlist item
         const watchlistItem = new Watchlist({
-          userId: req.user._id,
+          userid: req.user._id,
           ...item
         });
 
@@ -374,8 +374,8 @@ router.post('/bulk', async (req, res) => {
 
       } catch (error) {
         errors.push({
-          contentId: item.contentId,
-          contentType: item.contentType,
+          contentid: item.contentid,
+          contenttype: item.contenttype,
           error: error.message
         });
       }

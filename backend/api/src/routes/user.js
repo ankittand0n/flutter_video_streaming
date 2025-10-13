@@ -67,13 +67,13 @@ router.put('/profile', validate('updateProfile'), async (req, res) => {
 // @access  Private
 router.get('/watch-history', async (req, res) => {
   try {
-    const { page = 1, limit = 20, contentType, completed } = req.query;
+    const { page = 1, limit = 20, contenttype, completed } = req.query;
     
     const skip = (page - 1) * limit;
     
     // Build query
-    const query = { userId: req.user.id };
-    if (contentType) query.contentType = contentType;
+    const query = { userid: req.user.id };
+    if (contenttype) query.contenttype = contenttype;
     if (completed !== undefined) query.completed = completed === 'true';
     
     // Get watch history
@@ -118,9 +118,9 @@ router.get('/watch-history', async (req, res) => {
 // @access  Private
 router.post('/watch-history', async (req, res) => {
   try {
-    const { contentId, contentType, progress, completed } = req.body;
+    const { contentid, contenttype, progress, completed } = req.body;
     
-    if (!contentId || !contentType) {
+    if (!contentid || !contenttype) {
       return res.status(400).json({
         error: 'Content ID and content type are required'
       });
@@ -135,7 +135,7 @@ router.post('/watch-history', async (req, res) => {
 
     // Check if entry already exists
     const existingIndex = user.watchHistory.findIndex(
-      entry => entry.contentId === contentId && entry.contentType === contentType
+      entry => entry.contentid === contentid && entry.contenttype === contenttype
     );
 
     if (existingIndex !== -1) {
@@ -146,8 +146,8 @@ router.post('/watch-history', async (req, res) => {
     } else {
       // Add new entry
       user.watchHistory.push({
-        contentId,
-        contentType,
+        contentid,
+        contenttype,
         progress: progress || 0,
         completed: completed || false,
         watchedAt: new Date()
@@ -170,15 +170,15 @@ router.post('/watch-history', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/user/watch-history/:contentId
+// @route   DELETE /api/user/watch-history/:contentid
 // @desc    Remove watch history entry
 // @access  Private
-router.delete('/watch-history/:contentId', async (req, res) => {
+router.delete('/watch-history/:contentid', async (req, res) => {
   try {
-    const { contentId } = req.params;
-    const { contentType } = req.query;
+    const { contentid } = req.params;
+    const { contenttype } = req.query;
     
-    if (!contentType) {
+    if (!contenttype) {
       return res.status(400).json({
         error: 'Content type is required'
       });
@@ -193,7 +193,7 @@ router.delete('/watch-history/:contentId', async (req, res) => {
 
     // Remove entry
     user.watchHistory = user.watchHistory.filter(
-      entry => !(entry.contentId === contentId && entry.contentType === contentType)
+      entry => !(entry.contentid === contentid && entry.contenttype === contenttype)
     );
 
     await user.save();
@@ -276,8 +276,8 @@ router.get('/stats', async (req, res) => {
       : 0;
 
     // Get watch history by content type
-    const movieHistory = user.watchHistory.filter(entry => entry.contentType === 'movie');
-    const tvHistory = user.watchHistory.filter(entry => entry.contentType === 'tv');
+    const movieHistory = user.watchHistory.filter(entry => entry.contenttype === 'movie');
+    const tvHistory = user.watchHistory.filter(entry => entry.contenttype === 'tv');
 
     const stats = {
       totalWatched,

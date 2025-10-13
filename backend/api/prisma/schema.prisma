@@ -10,20 +10,16 @@ datasource db {
 
 model rating {
   id          Int      @id @default(autoincrement())
-  userId      Int
-  contentId   String
-  contentType String
-  rating      Int
-  review      String?
-  title       String?
-  helpful     String?
-  spoiler     Boolean  @default(false)
-  tags        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Rating_userId_fkey")
+  userid      Int      @map("user_id")
+  contenttype String   @map("media_type")
+  contentid   String   @map("media_id")
+  rating      Decimal  @db.Decimal(3,1)
+  createdat   DateTime @default(now()) @map("created_at")
+  updatedat   DateTime @updatedAt @map("updated_at")
+  user        user     @relation(fields: [userid], references: [id], onDelete: Cascade, map: "Rating_userId_fkey")
 
-  @@index([userId], map: "Rating_userId_idx")
+  @@index([userid], map: "Rating_userId_idx")
+  @@unique([userid, contenttype, contentid], map: "unique_user_rating")
 }
 
 model user {
@@ -31,55 +27,43 @@ model user {
   email                String      @unique(map: "User_email_key")
   password             String
   username             String      @unique(map: "User_username_key")
-  profileName          String
-  profileAvatar        String?
-  profileAge           Int?
-  profileLanguage      String?
-  profileMaturity      String?
-  preferencesGenres    String?
-  preferencesTypes     String?
-  preferencesLangs     String?
-  preferencesSubtitles Boolean     @default(false)
-  subscriptionPlan     String      @default("basic")
-  subscriptionStatus   String      @default("active")
-  subscriptionStart    DateTime    @default(now())
-  subscriptionEnd      DateTime?
-  watchHistory         String?
-  isActive             Boolean     @default(true)
-  lastLogin            DateTime    @default(now())
-  verificationToken    String?
-  resetPasswordToken   String?
-  resetPasswordExpires DateTime?
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
+  profilename          String
+  profileavatar        String?
+  profileage           Int?
+  profilelanguage      String?
+  profilematurity      String?
+  preferencesgenres    String?
+  preferencestypes     String?
+  preferenceslangs     String?
+  preferencessubtitles Boolean     @default(false)
+  subscriptionplan     String      @default("basic")
+  subscriptionstatus   String      @default("active")
+  subscriptionstart    DateTime    @default(now())
+  subscriptionend      DateTime?
+  watchhistory         String?
+  isactive             Boolean     @default(true)
+  lastlogin            DateTime    @default(now())
+  verificationtoken    String?
+  resetpasswordtoken   String?
+  resetpasswordexpires DateTime?
+  createdat            DateTime    @default(now())
+  updatedat            DateTime    @updatedAt
   rating               rating[]
   watchlist            watchlist[]
 }
 
 model watchlist {
   id           Int       @id @default(autoincrement())
+  userid       Int       @map("user_id")
+  contenttype  String    @map("media_type")
+  contentid    String    @map("media_id")
   title        String
-  addedAt      DateTime  @default(now())
-  backdropPath String?
-  contentId    String
-  contentType  String
-  createdAt    DateTime  @default(now())
-  genreIds     String?
-  notes        String?
-  overview     String?
-  posterPath   String?
-  priority     String    @default("medium")
-  rating       Int?
-  releaseDate  DateTime?
-  tags         String?
-  updatedAt    DateTime @updatedAt
-  userId       Int
-  voteAverage  Float?
-  watched      Boolean   @default(false)
-  watchedAt    DateTime?
-  user         user      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Watchlist_userId_fkey")
+  posterpath   String?   @map("poster_path")
+  createdat    DateTime  @default(now()) @map("created_at")
+  user         user      @relation(fields: [userid], references: [id], onDelete: Cascade, map: "Watchlist_userId_fkey")
 
-  @@index([userId], map: "Watchlist_userId_idx")
+  @@index([userid], map: "Watchlist_userId_idx")
+  @@unique([userid, contenttype, contentid], map: "unique_user_media")
 }
 
 model Movie {

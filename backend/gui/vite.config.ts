@@ -1,10 +1,17 @@
 import { defineConfig } from 'vite'
+import { config } from 'dotenv'
 
-export default async () => {
+// Load environment variables from .env file
+config()
+
+export default defineConfig(async () => {
   const react = (await import('@vitejs/plugin-react')).default
 
-  return defineConfig({
+  return {
     plugins: [react()],
-    server: { port: 5173 }
-  })
-}
+    server: {
+      port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+      host: true // Allow external access
+    }
+  }
+})

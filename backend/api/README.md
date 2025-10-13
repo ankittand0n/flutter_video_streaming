@@ -6,6 +6,7 @@ Node.js/Express API for Netflix clone with authentication, TMDB integration, and
 
 ### Prerequisites
 - Docker and Docker Compose installed
+- **pnpm** package manager (or install globally: `npm install -g pnpm`)
 - Update environment variables in `.env` or `docker-compose.yml`
 
 ### Quick Start
@@ -74,10 +75,10 @@ The API includes health check endpoints:
 For development with hot reload:
 ```bash
 # Install dependencies locally
-npm install
+pnpm install
 
 # Run with nodemon
-npm run dev
+pnpm dev
 ```
 
 ### Production Deployment

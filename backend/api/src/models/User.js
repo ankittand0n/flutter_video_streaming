@@ -36,13 +36,13 @@ class UserModel {
       email: this.email,
       password: this.password,
       username: this.username,
-      profileName: this.profile?.name || this.profileName,
+      profilename: this.profile?.name || this.profilename,
       profileAvatar: this.profile?.avatar || this.profileAvatar,
       profileAge: this.profile?.age || this.profileAge,
       profileLanguage: this.profile?.language || this.profileLanguage,
       profileMaturity: this.profile?.maturityLevel || this.profileMaturity,
       preferencesGenres: this.preferences?.genres ? JSON.stringify(this.preferences.genres) : this.preferencesGenres,
-      preferencesTypes: this.preferences?.contentTypes ? JSON.stringify(this.preferences.contentTypes) : this.preferencesTypes,
+      preferencesTypes: this.preferences?.contenttypes ? JSON.stringify(this.preferences.contenttypes) : this.preferencesTypes,
       preferencesLangs: this.preferences?.languages ? JSON.stringify(this.preferences.languages) : this.preferencesLangs,
       preferencesSubtitles: this.preferences?.subtitles ?? this.preferencesSubtitles,
       subscriptionPlan: this.subscription?.plan || this.subscriptionPlan,
@@ -159,7 +159,7 @@ class UserModel {
 
     // handle nested profile and preferences
     if (updateData.profile) {
-      merged.profileName = updateData.profile.name || existing.profileName;
+      merged.profilename = updateData.profile.name || existing.profilename;
       merged.profileAvatar = updateData.profile.avatar || existing.profileAvatar;
       merged.profileAge = updateData.profile.age || existing.profileAge;
       merged.profileLanguage = updateData.profile.language || existing.profileLanguage;
@@ -168,7 +168,7 @@ class UserModel {
 
     if (updateData.preferences) {
       merged.preferencesGenres = updateData.preferences.genres ? JSON.stringify(updateData.preferences.genres) : existing.preferencesGenres;
-      merged.preferencesTypes = updateData.preferences.contentTypes ? JSON.stringify(updateData.preferences.contentTypes) : existing.preferencesTypes;
+      merged.preferencesTypes = updateData.preferences.contenttypes ? JSON.stringify(updateData.preferences.contenttypes) : existing.preferencesTypes;
       merged.preferencesLangs = updateData.preferences.languages ? JSON.stringify(updateData.preferences.languages) : existing.preferencesLangs;
       merged.preferencesSubtitles = updateData.preferences.subtitles ?? existing.preferencesSubtitles;
     }
@@ -178,7 +178,7 @@ class UserModel {
       data: {
         email: merged.email,
         username: merged.username,
-        profileName: merged.profileName,
+        profilename: merged.profilename,
         profileAvatar: merged.profileAvatar,
         profileAge: merged.profileAge,
         profileLanguage: merged.profileLanguage,

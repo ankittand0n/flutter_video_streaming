@@ -71,7 +71,7 @@ const schemas = {
       genres: Joi.array().items(Joi.string().valid(
         'action', 'comedy', 'drama', 'horror', 'romance', 'sci-fi', 'thriller', 'documentary', 'animation'
       )).optional(),
-      contentTypes: Joi.array().items(Joi.string().valid(
+      contenttypes: Joi.array().items(Joi.string().valid(
         'movie', 'tv', 'documentary', 'animation'
       )).optional(),
       languages: Joi.array().items(Joi.string()).optional(),
@@ -81,10 +81,10 @@ const schemas = {
 
   // Watchlist item
   watchlistItem: Joi.object({
-    contentId: Joi.string().required().messages({
+    contentid: Joi.string().required().messages({
       'any.required': 'Content ID is required'
     }),
-    contentType: Joi.string().valid('movie', 'tv').required().messages({
+    contenttype: Joi.string().valid('movie', 'tv').required().messages({
       'any.required': 'Content type is required',
       'any.only': 'Content type must be either movie or tv'
     }),
@@ -104,10 +104,10 @@ const schemas = {
 
   // Rating
   rating: Joi.object({
-    contentId: Joi.string().required().messages({
+    contentid: Joi.string().required().messages({
       'any.required': 'Content ID is required'
     }),
-    contentType: Joi.string().valid('movie', 'tv').required().messages({
+    contenttype: Joi.string().valid('movie', 'tv').required().messages({
       'any.required': 'Content type is required',
       'any.only': 'Content type must be either movie or tv'
     }),

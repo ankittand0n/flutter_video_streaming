@@ -18,9 +18,9 @@ class RatingModel {
 
   static async find(query) {
     const where = {};
-    if (query.contentId) where.contentId = query.contentId;
-    if (query.contentType) where.contentType = query.contentType;
-    if (query.userId) where.userId = Number(query.userId);
+    if (query.contentid) where.contentid = query.contentid;
+    if (query.contenttype) where.contenttype = query.contenttype;
+    if (query.userid) where.userid = Number(query.userid);
 
     const items = await prisma.rating.findMany({ where, orderBy: { createdAt: 'desc' }, take: query.limit ? Number(query.limit) : undefined, skip: query.skip ? Number(query.skip) : undefined });
     return items.map(i => new RatingModel(i));
@@ -33,9 +33,9 @@ class RatingModel {
 
   static async findOne(query) {
     const where = {};
-    if (query.userId) where.userId = Number(query.userId);
-    if (query.contentId) where.contentId = query.contentId;
-    if (query.contentType) where.contentType = query.contentType;
+    if (query.userid) where.userid = Number(query.userid);
+    if (query.contentid) where.contentid = query.contentid;
+    if (query.contenttype) where.contenttype = query.contenttype;
 
     const item = await prisma.rating.findFirst({ where });
     return item ? new RatingModel(item) : null;
@@ -43,9 +43,9 @@ class RatingModel {
 
   static async countDocuments(query) {
     const where = {};
-    if (query.userId) where.userId = Number(query.userId);
-    if (query.contentId) where.contentId = query.contentId;
-    if (query.contentType) where.contentType = query.contentType;
+    if (query.userid) where.userid = Number(query.userid);
+    if (query.contentid) where.contentid = query.contentid;
+    if (query.contenttype) where.contenttype = query.contenttype;
     return await prisma.rating.count({ where });
   }
 

@@ -12,7 +12,7 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    const user = await prisma.user.findUnique({ where: { id: decoded.userid } });
     
     if (!user) {
       return res.status(401).json({ 
@@ -54,8 +54,8 @@ const optionalAuth = async (req, res, next) => {
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await prisma.user.findUnique({ 
-        where: { id: decoded.userId },
-        select: { id: true, email: true, username: true, profileName: true, isActive: true }
+        where: { id: decoded.userid },
+        select: { id: true, email: true, username: true, profilename: true, isactive: true }
       });
       
       if (user && user.isActive) {

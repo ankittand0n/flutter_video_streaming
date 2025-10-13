@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://api.namkeentv.com';
 
 describe('Rating Functionality Tests', () => {
   let adminToken = '';
@@ -18,8 +18,8 @@ describe('Rating Functionality Tests', () => {
   test('Admin rating creation should be blocked', async () => {
     try {
       await axios.post(`${API_BASE}/rating`, {
-        contentId: '12345',
-        contentType: 'movie',
+        contentid: '12345',
+        contenttype: 'movie',
         rating: 5,
         review: 'Great movie!',
         title: 'Admin review'
@@ -35,10 +35,10 @@ describe('Rating Functionality Tests', () => {
     }
   });
 
-  test('Rating validation - missing contentId', async () => {
+  test('Rating validation - missing contentid', async () => {
     try {
       await axios.post(`${API_BASE}/rating`, {
-        contentType: 'movie',
+        contenttype: 'movie',
         rating: 5
       }, {
         headers: {
@@ -46,16 +46,16 @@ describe('Rating Functionality Tests', () => {
           'Content-Type': 'application/json'
         }
       });
-      fail('Should have failed for missing contentId');
+      fail('Should have failed for missing contentid');
     } catch (error) {
       expect(error.response.status).toBe(400);
     }
   });
 
-  test('Rating validation - missing contentType', async () => {
+  test('Rating validation - missing contenttype', async () => {
     try {
       await axios.post(`${API_BASE}/rating`, {
-        contentId: '12345',
+        contentid: '12345',
         rating: 5
       }, {
         headers: {
@@ -63,7 +63,7 @@ describe('Rating Functionality Tests', () => {
           'Content-Type': 'application/json'
         }
       });
-      fail('Should have failed for missing contentType');
+      fail('Should have failed for missing contenttype');
     } catch (error) {
       expect(error.response.status).toBe(400);
     }
@@ -72,8 +72,8 @@ describe('Rating Functionality Tests', () => {
   test('Rating validation - missing rating', async () => {
     try {
       await axios.post(`${API_BASE}/rating`, {
-        contentId: '12345',
-        contentType: 'movie'
+        contentid: '12345',
+        contenttype: 'movie'
       }, {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
@@ -89,8 +89,8 @@ describe('Rating Functionality Tests', () => {
   test('Rating validation - invalid rating (too high)', async () => {
     try {
       await axios.post(`${API_BASE}/rating`, {
-        contentId: '12345',
-        contentType: 'movie',
+        contentid: '12345',
+        contenttype: 'movie',
         rating: 15
       }, {
         headers: {
@@ -104,11 +104,11 @@ describe('Rating Functionality Tests', () => {
     }
   });
 
-  test('Rating validation - invalid contentType', async () => {
+  test('Rating validation - invalid contenttype', async () => {
     try {
       await axios.post(`${API_BASE}/rating`, {
-        contentId: '12345',
-        contentType: 'invalid',
+        contentid: '12345',
+        contenttype: 'invalid',
         rating: 5
       }, {
         headers: {
@@ -116,7 +116,7 @@ describe('Rating Functionality Tests', () => {
           'Content-Type': 'application/json'
         }
       });
-      fail('Should have failed for invalid contentType');
+      fail('Should have failed for invalid contenttype');
     } catch (error) {
       expect(error.response.status).toBe(400);
     }

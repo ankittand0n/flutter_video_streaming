@@ -94,11 +94,11 @@ class Movie {
   // Helper methods
   String get fullPosterPath => posterPath.startsWith('http') 
       ? posterPath 
-      : 'http://127.0.0.1:3000$posterPath';
+      : 'http://api.namkeentv.com$posterPath';
       
   String get fullBackdropPath => backdropPath.startsWith('http') 
       ? backdropPath 
-      : 'http://127.0.0.1:3000$backdropPath';
+      : 'http://api.namkeentv.com$backdropPath';
 
   bool get hasVideo => videoUrl != null && videoUrl!.isNotEmpty;
   bool get hasTrailer => trailerUrl != null && trailerUrl!.isNotEmpty;
