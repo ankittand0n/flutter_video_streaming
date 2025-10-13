@@ -105,7 +105,7 @@ router.post('/login', validate('login'), async (req, res) => {
     }
 
     // Check if account is active
-    if (!user.isActive) {
+    if (!user.isactive) {
       return res.status(401).json({
         error: 'Account is deactivated'
       });

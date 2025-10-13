@@ -20,7 +20,7 @@ const auth = async (req, res, next) => {
       });
     }
 
-    if (!user.isActive) {
+    if (!user.isactive) {
       return res.status(401).json({ 
         error: 'Account is deactivated.' 
       });
@@ -58,7 +58,7 @@ const optionalAuth = async (req, res, next) => {
         select: { id: true, email: true, username: true, profilename: true, isactive: true }
       });
       
-      if (user && user.isActive) {
+      if (user && user.isactive) {
         req.user = user;
         req.token = token;
       }
@@ -76,9 +76,8 @@ const adminAuth = async (req, res, next) => {
   try {
     await auth(req, res, () => {});
     
-    // Add admin check logic here if needed
-    // For now, we'll just check if user exists
-    if (!req.user) {
+    // Check if user is admin (for now, check username or email)
+    if (!req.user || (req.user.username !== 'admin' && req.user.email !== 'admin@example.com')) {
       return res.status(403).json({ 
         error: 'Access denied. Admin privileges required.' 
       });

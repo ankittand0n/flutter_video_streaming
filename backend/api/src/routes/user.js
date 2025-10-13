@@ -1,6 +1,6 @@
 const express = require('express');
 const { User } = require('../models');
-const { auth } = require('../middleware/auth');
+const { auth, adminAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 
 const router = express.Router();
@@ -396,6 +396,53 @@ router.delete('/account', async (req, res) => {
     console.error('Delete account error:', error);
     res.status(500).json({
       error: 'Failed to delete account',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// @route   PUT /api/user/admin/activate/:userId
+// @desc    Activate or deactivate a user account (Admin only)
+// @access  Admin
+router.put('/admin/activate/:userId', adminAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isactive } = req.body;
+
+    if (typeof isactive !== 'boolean') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        details: 'isactive must be a boolean value'
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isactive },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `User ${isactive ? 'activated' : 'deactivated'} successfully`,
+      data: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        isactive: user.isactive
+      }
+    });
+
+  } catch (error) {
+    console.error('Activate user error:', error);
+    res.status(500).json({
+      error: 'Failed to update user status',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
