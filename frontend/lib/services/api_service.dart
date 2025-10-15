@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://api.namkeentv.com';
+  static const String baseUrl = 'http://localhost:3000';
   
   // Movies
   static Future<List<Map<String, dynamic>>> getMovies({
@@ -48,6 +48,26 @@ class ApiService {
       }
     } catch (e) {
       print('Error fetching movie: $e');
+      return null;
+    }
+  }
+
+  // Get TV details by id (backend)
+  static Future<Map<String, dynamic>?> getTv(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/tv/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'];
+      } else {
+        throw Exception('Failed to load tv: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching tv: $e');
       return null;
     }
   }
@@ -150,8 +170,8 @@ class ApiService {
       return imagePath;
     }
     
-    // Otherwise, prepend the backend URL
-    final fullUrl = 'http://api.namkeentv.com$imagePath';
+  // Otherwise, prepend the backend URL (use localhost during local development)
+  final fullUrl = 'http://localhost:3000$imagePath';
     print('Generated image URL: $fullUrl');
     return fullUrl;
   }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../screens/profile_selection.dart';
-
 class ProfileIcon extends StatelessWidget {
   const ProfileIcon({super.key, this.iconSize, required this.color});
 

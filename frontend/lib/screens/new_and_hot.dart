@@ -1,7 +1,5 @@
-import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:namkeen_tv/bloc/netflix_bloc.dart';
 
@@ -17,39 +15,18 @@ class NewAndHotScreen extends StatefulWidget {
 
 class _NewAndHotScreenState extends State<NewAndHotScreen>
     with SingleTickerProviderStateMixin {
-  late final ScrollController _scrollController = ScrollController()
-    ..addListener(() {
-      if (_scrollController.position.userScrollDirection !=
-          ScrollDirection.idle) {
-        int newIndex = max(0, min(_scrollController.offset ~/ 3000, 2));
-        if (_tabController.index != newIndex) {
-          _tabController.animateTo(newIndex);
-        }
-      }
-    });
+  late final ScrollController _scrollController = ScrollController();
 
   late final TabController _tabController =
       TabController(length: 3, vsync: this)
-        ..addListener(() {
-          if (_tabController.indexIsChanging &&
-              _scrollController.position.userScrollDirection ==
-                  ScrollDirection.idle) {
-            var offset = _scrollController.offset,
-                minRange = offset - 300,
-                maxRange = offset + 300,
-                offsetTo = _tabController.index * 3000.0;
-
-            if (!(minRange <= offsetTo && maxRange >= offsetTo)) {
-              _scrollController.animateTo(_tabController.index * 3000.0,
-                  curve: Curves.linear,
-                  duration: const Duration(milliseconds: 1000));
-            }
-          }
-        });
+        // Removed automatic scroll-to-tab behavior to disable side-scrolling sync.
+        ;
 
   @override
   void initState() {
+    // Load both TV shows and movies for the New & Hot screen
     context.read<DiscoverTvShowsBloc>().add(DiscoverTvShowsEvent());
+    context.read<DiscoverMoviesBloc>().add(DiscoverMoviesEvent());
     super.initState();
   }
 

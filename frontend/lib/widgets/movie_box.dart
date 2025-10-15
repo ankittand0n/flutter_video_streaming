@@ -19,6 +19,11 @@ class MovieBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Make poster size responsive to screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    final posterWidth = screenWidth > 1200 ? 200.0 : (screenWidth > 800 ? 150.0 : 110.0);
+    final posterHeight = posterWidth * 2.0; // Maintain aspect ratio
+    
     return Padding(
       padding:
           padding ?? const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
@@ -31,8 +36,8 @@ class MovieBox extends StatelessWidget {
             fill
                 ? Positioned.fill(
                     child:
-                        PosterImage(movie: movie, width: 110.0, height: 220.0))
-                : PosterImage(movie: movie, width: 110.0, height: 220.0),
+                        PosterImage(movie: movie, width: posterWidth, height: posterHeight))
+                : PosterImage(movie: movie, width: posterWidth, height: posterHeight),
             if (laughs != null)
               Positioned(
                 bottom: 2.0,

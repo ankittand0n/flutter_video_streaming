@@ -44,7 +44,8 @@ class _NextflixBottomNavigationState extends State<NextflixBottomNavigation> {
             context.go('/home');
             break;
           case 1:
-            context.go('/home');
+            // Navigate to home and request the movies section to be shown
+            context.go('/home?section=movies');
             break;
           case 2:
             context.go('/home/tvshows');

@@ -18,6 +18,11 @@ class HighlightMovie extends StatelessWidget {
     return Builder(builder: (context) {
       final movies = context.watch<DiscoverMoviesBloc>().state;
       final width = MediaQuery.of(context).size.width;
+      // Limit highlight height on desktop for better proportions
+      final highlightHeight = width > 1200 
+          ? 700.0 
+          : (width > 800 ? 600.0 : width + (width * .6));
+      
       if (movies is DiscoverMovies) {
         return Stack(
           children: [
@@ -37,7 +42,7 @@ class HighlightMovie extends StatelessWidget {
                 borderRadius: BorderRadius.zero,
                 movie: movies.list.first,
                 width: width,
-                height: width + (width * .6),
+                height: highlightHeight,
               ),
             ),
             Positioned(

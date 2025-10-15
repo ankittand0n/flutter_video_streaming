@@ -21,6 +21,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   double _scrollOffset = 0.0;
+  // Key used to scroll to the Movies section
+  final GlobalKey _moviesSectionKey = GlobalKey();
   late final ScrollController _scrollController = ScrollController()
     ..addListener(() {
       setState(() {
@@ -52,8 +54,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void didChangeDependencies() {
-    if (GoRouterState.of(context).location != '/home/tvshows') {
+    final state = GoRouterState.of(context);
+    if (!state.location.contains('/home/tvshows')) {
       context.read<AnimationStatusCubit>().onStatus(null);
+    }
+
+    // If navigation requested a specific section, scroll to it after frame
+    final uri = Uri.parse(state.location);
+    final section = uri.queryParameters['section'];
+    if (section != null && section == 'movies') {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (_moviesSectionKey.currentContext != null) {
+          await Scrollable.ensureVisible(_moviesSectionKey.currentContext!,
+              duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        }
+      });
     }
     super.didChangeDependencies();
   }
@@ -94,7 +109,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const padding = EdgeInsets.only(top: 16.0, bottom: 4.0);
+  // Keys for sections
+  // padding is defined below and used for section spacing
+  final isTvPage = GoRouterState.of(context).location.contains('tvshows');
+  const padding = EdgeInsets.only(top: 16.0, bottom: 4.0, left: 8.0, right: 8.0);
+  
+  // Make row height and text size responsive
+  final screenWidth = MediaQuery.of(context).size.width;
+  final rowHeight = screenWidth > 1200 ? 420.0 : (screenWidth > 800 ? 320.0 : 200.0);
+  final titleFontSize = screenWidth > 1200 ? 28.0 : (screenWidth > 800 ? 22.0 : 18.0);
+  
     return NestedScrollView(
       physics: const ClampingScrollPhysics(),
       headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -114,122 +138,125 @@ class _HomeScreenState extends State<HomeScreen> {
         physics: const ClampingScrollPhysics(),
         controller: _scrollController,
         slivers: [
+          // Build a simple children list to avoid complex inline collection-if parsing issues
           SliverList(
-            delegate: SliverChildListDelegate.fixed([
-              const HighlightMovie(),
-              const Padding(
-                padding: padding,
-                child: Text(
-                  'Trending TV Shows This Week',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(
-                height: 180.0,
-                child: Builder(builder: (context) {
-                  final movies =
-                      context.watch<TrendingTvShowListWeeklyBloc>().state;
+            delegate: SliverChildListDelegate.fixed(
+              (() {
+                final List<Widget> children = [];
+                children.add(const HighlightMovie());
 
-                  if (movies is TrendingTvShowLisWeekly) {
-                    return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: movies.list.length,
-                        itemBuilder: (context, index) {
-                          final movie = movies.list[index];
-                          return MovieBox(
-                            key: ValueKey(movie.id),
-                            movie: movie,
-                          );
-                        });
-                  }
-                  return _shimmer;
-                }),
-              ),
-              const Padding(
-                padding: padding,
-                child: Text(
-                  'Trending TV Shows Today',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(
-                height: 180.0,
-                child: Builder(builder: (context) {
-                  final movies =
-                      context.watch<TrendingTvShowListDailyBloc>().state;
+                if (isTvPage) {
+                  children.add(Padding(
+                    padding: padding,
+                    child: Text(
+                      'Trending TV Shows This Week',
+                      style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold),
+                    ),
+                  ));
 
-                  if (movies is TrendingTvShowListDaily) {
-                    return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: movies.list.length,
-                        itemBuilder: (context, index) {
-                          final movie = movies.list[index];
-                          return MovieBox(
-                            key: ValueKey(movie.id),
-                            movie: movie,
-                          );
-                        });
-                  }
-                  return _shimmer;
-                }),
-              ),
-              const Padding(
-                padding: padding,
-                child: Text(
-                  'Trending Movies This Week',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(
-                height: 180.0,
-                child: Builder(builder: (context) {
-                  final movies =
-                      context.watch<TrendingMovieListWeeklyBloc>().state;
+                  children.add(SizedBox(
+                    height: rowHeight,
+                    child: Builder(builder: (context) {
+                      final movies = context.watch<TrendingTvShowListWeeklyBloc>().state;
+                      if (movies is TrendingTvShowLisWeekly) {
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: movies.list.length,
+                          itemBuilder: (context, index) {
+                            final movie = movies.list[index];
+                            return MovieBox(key: ValueKey(movie.id), movie: movie);
+                          },
+                        );
+                      }
+                      return _shimmer;
+                    }),
+                  ));
 
-                  if (movies is TrendingMovieListWeekly) {
-                    return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: movies.list.length,
-                        itemBuilder: (context, index) {
-                          final movie = movies.list[index];
-                          return MovieBox(
-                            key: ValueKey(movie.id),
-                            movie: movie,
-                          );
-                        });
-                  }
-                  return _shimmer;
-                }),
-              ),
-              const Padding(
-                padding: padding,
-                child: Text(
-                  'Trending Movies Today',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(
-                height: 180.0,
-                child: Builder(builder: (context) {
-                  final movies =
-                      context.watch<TrendingMovieListDailyBloc>().state;
+                  children.add(Padding(
+                    padding: padding,
+                    child: Text(
+                      'Trending TV Shows Today',
+                      style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold),
+                    ),
+                  ));
 
-                  if (movies is TrendingMovieListDaily) {
-                    return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: movies.list.length,
-                        itemBuilder: (context, index) {
-                          final movie = movies.list[index];
-                          return MovieBox(
-                            key: ValueKey(movie.id),
-                            movie: movie,
-                          );
-                        });
-                  }
-                  return _shimmer;
-                }),
-              ),
-            ]),
+                  children.add(SizedBox(
+                    height: rowHeight,
+                    child: Builder(builder: (context) {
+                      final movies = context.watch<TrendingTvShowListDailyBloc>().state;
+                      if (movies is TrendingTvShowListDaily) {
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: movies.list.length,
+                          itemBuilder: (context, index) {
+                            final movie = movies.list[index];
+                            return MovieBox(key: ValueKey(movie.id), movie: movie);
+                          },
+                        );
+                      }
+                      return _shimmer;
+                    }),
+                  ));
+                } else {
+                  children.add(Container(
+                    key: _moviesSectionKey,
+                    child: Padding(
+                      padding: padding,
+                      child: Text(
+                        'Trending Movies This Week',
+                        style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ));
+
+                  children.add(SizedBox(
+                    height: rowHeight,
+                    child: Builder(builder: (context) {
+                      final movies = context.watch<TrendingMovieListWeeklyBloc>().state;
+                      if (movies is TrendingMovieListWeekly) {
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: movies.list.length,
+                          itemBuilder: (context, index) {
+                            final movie = movies.list[index];
+                            return MovieBox(key: ValueKey(movie.id), movie: movie);
+                          },
+                        );
+                      }
+                      return _shimmer;
+                    }),
+                  ));
+
+                  children.add(Padding(
+                    padding: padding,
+                    child: Text(
+                      'Trending Movies Today',
+                      style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold),
+                    ),
+                  ));
+
+                  children.add(SizedBox(
+                    height: rowHeight,
+                    child: Builder(builder: (context) {
+                      final movies = context.watch<TrendingMovieListDailyBloc>().state;
+                      if (movies is TrendingMovieListDaily) {
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: movies.list.length,
+                          itemBuilder: (context, index) {
+                            final movie = movies.list[index];
+                            return MovieBox(key: ValueKey(movie.id), movie: movie);
+                          },
+                        );
+                      }
+                      return _shimmer;
+                    }),
+                  ));
+                }
+
+                return children;
+              })(),
+            ),
           ),
         ],
       ),

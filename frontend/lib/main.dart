@@ -6,7 +6,6 @@ import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/screens/home.dart';
 import 'package:namkeen_tv/screens/movie_details.dart';
 import 'package:namkeen_tv/screens/netflix_scaffold.dart';
-import 'package:namkeen_tv/screens/profile_selection.dart';
 import 'package:go_router/go_router.dart';
 
 import 'bloc/blocs.dart';
@@ -47,12 +46,7 @@ class NamkeenTvApp extends StatelessWidget {
     initialLocation: '/home',
     navigatorKey: _navigatorState,
     routes: [
-      GoRoute(
-        path: '/profile',
-        builder: (BuildContext context, GoRouterState state) {
-          return const ProfileSelectionScreen();
-        },
-      ),
+      // Profile route removed
       ShellRoute(
         // observers: [_heroController],
         builder: (context, state, child) {

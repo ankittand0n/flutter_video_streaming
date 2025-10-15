@@ -53,15 +53,7 @@ class NewAndHotHeaderDelegate extends SliverPersistentHeaderDelegate {
                   )
                 ],
               ),
-              IconButton(onPressed: () {
-                context.go('/profile');
-              }, icon: Builder(builder: (context) {
-                final state = context.watch<ProfileSelectorBloc>().state;
-                return ProfileIcon(
-                  color: profileColors[state.profile],
-                  iconSize: IconTheme.of(context).size,
-                );
-              })),
+              // Profile button removed
             ],
           ),
           SizedBox(

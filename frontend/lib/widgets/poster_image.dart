@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:namkeen_tv/model/episode.dart';
 import 'package:namkeen_tv/model/movie.dart';
-import 'package:shimmer/shimmer.dart';
-
-import '../bloc/netflix_bloc.dart';
-import '../services/local_image_service.dart';
-import '../utils/utils.dart';
-import 'local_poster_image.dart';
 
 class PosterImage extends StatelessWidget {
   const PosterImage(
@@ -30,36 +23,59 @@ class PosterImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use local images instead of TMDB API
-    String localImagePath;
+    // Get image URL from backend API (now provides full URLs)
+    String? imageUrl;
     
     if (movie != null) {
-      // Use movie ID to get local image (with repetition)
-      localImagePath = LocalImageService.getMovieImage(movie!.id ?? 0);
+      // Use backdrop or poster from backend
+      imageUrl = backdrop ? movie!.backdropPath : movie!.posterPath;
     } else if (episode != null) {
-      // Use episode ID to get local image (with repetition)
-      localImagePath = LocalImageService.getTvSeriesImage(episode!.id ?? 0);
-    } else {
-      // Fallback to a default image
-      localImagePath = LocalImageService.getMovieImage(0);
+      // Use episode still or poster
+      imageUrl = episode!.stillPath;
     }
 
-    if (backdrop) {
-      // For backdrop images, use the same local image but with backdrop styling
-      return LocalBackdropImage(
-        imagePath: localImagePath,
-        width: width ?? (original ? double.infinity : 300.0),
-        height: height ?? (original ? 400.0 : 180.0),
-        borderRadius: borderRadius,
-      );
-    } else {
-      // For poster images
-      return LocalPosterImage(
-        imagePath: localImagePath,
-        width: width ?? (original ? 300.0 : 150.0),
-        height: height ?? (original ? 400.0 : 68.0),
-        borderRadius: borderRadius,
+    // Fallback to placeholder if no image URL
+    if (imageUrl == null || imageUrl.isEmpty) {
+      imageUrl = 'https://via.placeholder.com/${width?.toInt() ?? 300}x${height?.toInt() ?? 450}?text=No+Image';
+    }
+
+    final imageWidget = Image.network(
+      imageUrl,
+      width: width ?? (backdrop ? (original ? double.infinity : 300.0) : (original ? 300.0 : 150.0)),
+      height: height ?? (backdrop ? (original ? 400.0 : 180.0) : (original ? 400.0 : 225.0)),
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[800],
+          child: const Icon(Icons.broken_image, color: Colors.grey, size: 48),
+        );
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          width: width,
+          height: height,
+          color: Colors.grey[900],
+          child: Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+    );
+
+    if (borderRadius != null) {
+      return ClipRRect(
+        borderRadius: borderRadius!,
+        child: imageWidget,
       );
     }
+    
+    return imageWidget;
   }
 }

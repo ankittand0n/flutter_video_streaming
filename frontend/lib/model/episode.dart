@@ -7,10 +7,14 @@ class Episode {
   final DateTime? airDate;
 
   Episode.fromJson(Map<String, dynamic> json)
-      : id = json['id'],
-        name = json['name'],
-        overview = json['overview'],
-        episodeNumber = json['episode_number'],
-        stillPath = json['still_path'],
-        airDate = DateTime.tryParse(json['air_date']);
+      : id = json['id'] ?? 0,
+        name = (json['name'] ?? '').toString(),
+        overview = json['overview']?.toString(),
+        episodeNumber = json['episode_number'] ?? 0,
+        stillPath = json['still_path']?.toString(),
+        airDate = (() {
+          final dateStr = json['air_date'];
+          if (dateStr == null) return null;
+          return DateTime.tryParse(dateStr.toString());
+        })();
 }

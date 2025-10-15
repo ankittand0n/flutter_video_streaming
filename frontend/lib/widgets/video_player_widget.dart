@@ -10,12 +10,12 @@ class VideoPlayerWidget extends StatefulWidget {
   final VoidCallback? onClose;
 
   const VideoPlayerWidget({
-    Key? key,
+    super.key,
     required this.videoUrl,
     this.trailerUrl,
     this.isTrailer = false,
     this.onClose,
-  }) : super(key: key);
+  });
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -30,6 +30,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   bool _showControls = true;
   bool _isMuted = false;
   bool _isFullscreen = false;
+  // ignore: unused_field
   bool _isSystemUIVisible = true;
 
   @override
@@ -66,8 +67,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         }
       } else {
         // Play movie video
-        _videoController = VideoPlayerController.networkUrl(
-          Uri.parse(widget.videoUrl),
+        if (widget.videoUrl.isEmpty) {
+          throw Exception('Video URL is empty');
+        }
+        
+        _videoController = VideoPlayerController.network(
+          widget.videoUrl,
         );
         
         await _videoController!.initialize();
@@ -275,9 +280,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.3),
+              Colors.black.withValues(alpha: 0.3),
               Colors.transparent,
-              Colors.black.withOpacity(0.7),
+              Colors.black.withValues(alpha: 0.7),
             ],
           ),
         ),
