@@ -25,11 +25,16 @@ const generateToken = (userid) => {
 // @access  Public
 router.post('/register', validate('register'), async (req, res) => {
   try {
-    const { email, password, username, profile } = req.body;
+    const { email, password, username, profilename } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email: email.toLowerCase() }, { username: username.toLowerCase() }]
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: email.toLowerCase() },
+          { username: username.toLowerCase() }
+        ]
+      }
     });
 
     if (existingUser) {
@@ -41,27 +46,38 @@ router.post('/register', validate('register'), async (req, res) => {
       });
     }
 
-    // Create new user
-    const user = new User({
-      email: email.toLowerCase(),
-      password,
-      username: username.toLowerCase(),
-      profile
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user with Prisma
+    const user = await prisma.user.create({
+      data: {
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        username: username.toLowerCase(),
+        profilename: profilename || username,
+        isactive: true
+      }
     });
 
-    await user.save();
-
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastlogin: new Date() }
+    });
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
-      user: user.getPublicProfile()
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        profilename: user.profilename
+      }
     });
 
   } catch (error) {
@@ -148,12 +164,17 @@ router.post('/login', validate('login'), async (req, res) => {
 router.post('/refresh', auth, async (req, res) => {
   try {
     // Generate new token
-    const token = generateToken(req.user._id);
+    const token = generateToken(req.user.id);
 
     res.json({
       message: 'Token refreshed successfully',
       token,
-      user: req.user.getPublicProfile()
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        username: req.user.username,
+        profilename: req.user.profilename
+      }
     });
 
   } catch (error) {
@@ -171,7 +192,13 @@ router.post('/refresh', auth, async (req, res) => {
 router.get('/me', auth, async (req, res) => {
   try {
     res.json({
-      user: req.user.getPublicProfile()
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        username: req.user.username,
+        profilename: req.user.profilename,
+        createdAt: req.user.createdat
+      }
     });
 
   } catch (error) {
@@ -188,26 +215,25 @@ router.get('/me', auth, async (req, res) => {
 // @access  Private
 router.put('/profile', auth, validate('updateProfile'), async (req, res) => {
   try {
-    const { profile, preferences } = req.body;
-    const updateData = {};
-
-    if (profile) {
-      updateData.profile = { ...req.user.profile, ...profile };
-    }
-
-    if (preferences) {
-      updateData.preferences = { ...req.user.preferences, ...preferences };
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+    const { profilename } = req.body;
+    
+    // Update user profile with Prisma
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        profilename: profilename || req.user.profilename
+      }
+    });
 
     res.json({
       message: 'Profile updated successfully',
-      user: user.getPublicProfile()
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        profilename: user.profilename,
+        createdat: user.createdat
+      }
     });
 
   } catch (error) {
@@ -258,9 +284,17 @@ router.post('/change-password', auth, async (req, res) => {
       });
     }
 
+    // Get user with password from Prisma
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     // Verify current password
-    const user = await User.findById(req.user._id);
-    const isMatch = await user.comparePassword(currentPassword);
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
     
     if (!isMatch) {
       return res.status(401).json({
@@ -268,9 +302,12 @@ router.post('/change-password', auth, async (req, res) => {
       });
     }
 
-    // Update password
-    user.password = newPassword;
-    await user.save();
+    // Hash new password and update
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { password: hashedPassword }
+    });
 
     res.json({
       message: 'Password changed successfully'

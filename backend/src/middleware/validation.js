@@ -12,22 +12,17 @@ const schemas = {
       'string.min': 'Password must be at least 6 characters long',
       'any.required': 'Password is required'
     }),
-    username: Joi.string().min(3).max(20).alphanum().required().messages({
+    username: Joi.string().min(3).max(30).pattern(/^[a-zA-Z0-9]+$/).required().messages({
       'string.min': 'Username must be at least 3 characters long',
-      'string.max': 'Username cannot exceed 20 characters',
-      'string.alphanum': 'Username can only contain alphanumeric characters',
+      'string.max': 'Username cannot exceed 30 characters',
+      'string.pattern.base': 'Username can only contain letters and numbers',
       'any.required': 'Username is required'
     }),
-    profile: Joi.object({
-      name: Joi.string().min(2).max(50).required().messages({
-        'string.min': 'Name must be at least 2 characters long',
-        'string.max': 'Name cannot exceed 50 characters',
-        'any.required': 'Name is required'
-      }),
-      age: Joi.number().min(0).max(120).optional(),
-      language: Joi.string().length(2).optional(),
-      maturityLevel: Joi.string().valid('kids', 'teens', 'adults').optional()
-    }).required()
+    profilename: Joi.string().min(2).max(50).required().messages({
+      'string.min': 'Profile name must be at least 2 characters long',
+      'string.max': 'Profile name cannot exceed 50 characters',
+      'any.required': 'Profile name is required'
+    })
   }),
 
   // User login
@@ -35,10 +30,10 @@ const schemas = {
     email: Joi.string().email().allow(null, '').messages({
       'string.email': 'Please provide a valid email address'
     }),
-    username: Joi.string().min(3).max(20).alphanum().allow(null, '').messages({
+    username: Joi.string().min(3).max(30).pattern(/^[a-zA-Z0-9]+$/).allow(null, '').messages({
       'string.min': 'Username must be at least 3 characters long',
-      'string.max': 'Username cannot exceed 20 characters',
-      'string.alphanum': 'Username can only contain alphanumeric characters'
+      'string.max': 'Username cannot exceed 30 characters',
+      'string.pattern.base': 'Username can only contain letters and numbers'
     }),
     password: Joi.string().required().messages({
       'any.required': 'Password is required'
@@ -60,23 +55,10 @@ const schemas = {
 
   // User profile update
   updateProfile: Joi.object({
-    profile: Joi.object({
-      name: Joi.string().min(2).max(50).optional(),
-      avatar: Joi.string().uri().optional(),
-      age: Joi.number().min(0).max(120).optional(),
-      language: Joi.string().length(2).optional(),
-      maturityLevel: Joi.string().valid('kids', 'teens', 'adults').optional()
-    }).optional(),
-    preferences: Joi.object({
-      genres: Joi.array().items(Joi.string().valid(
-        'action', 'comedy', 'drama', 'horror', 'romance', 'sci-fi', 'thriller', 'documentary', 'animation'
-      )).optional(),
-      contenttypes: Joi.array().items(Joi.string().valid(
-        'movie', 'tv', 'documentary', 'animation'
-      )).optional(),
-      languages: Joi.array().items(Joi.string()).optional(),
-      subtitles: Joi.boolean().optional()
-    }).optional()
+    profilename: Joi.string().min(2).max(50).optional().messages({
+      'string.min': 'Profile name must be at least 2 characters long',
+      'string.max': 'Profile name cannot exceed 50 characters'
+    })
   }),
 
   // Watchlist item
