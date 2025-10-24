@@ -5,6 +5,7 @@ class VideoPlayerWidget extends StatelessWidget {
   final String videoUrl;
   final String? trailerUrl;
   final bool isTrailer;
+  final String? videoId; // Unique identifier for the video
   final VoidCallback? onClose;
 
   const VideoPlayerWidget({
@@ -12,6 +13,7 @@ class VideoPlayerWidget extends StatelessWidget {
     required this.videoUrl,
     this.trailerUrl,
     this.isTrailer = false,
+    this.videoId,
     this.onClose,
   });
 
@@ -22,6 +24,7 @@ class VideoPlayerWidget extends StatelessWidget {
       trailerUrl: trailerUrl,
       isTrailer: isTrailer,
       title: isTrailer ? 'Trailer' : 'Movie',
+      videoId: videoId,
       autoPlay: true,
       onVideoEnded: onClose,
       // You can add subtitle and audio track data here when available

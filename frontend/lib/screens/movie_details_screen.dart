@@ -224,6 +224,7 @@ class MovieDetailsScreen extends StatelessWidget {
         'videoUrl': movie.videoUrl!,
         'trailerUrl': movie.trailerUrl,
         'isTrailer': false,
+        'videoId': movie.id.toString(), // Add movie ID for resume
       });
     }
   }
@@ -234,6 +235,7 @@ class MovieDetailsScreen extends StatelessWidget {
         'videoUrl': movie.videoUrl ?? '',
         'trailerUrl': movie.trailerUrl,
         'isTrailer': true,
+        'videoId': 'trailer_${movie.id}', // Separate key for trailers
       });
     }
   }

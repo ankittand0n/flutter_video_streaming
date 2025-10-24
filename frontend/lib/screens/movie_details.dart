@@ -7,6 +7,7 @@ import 'package:namkeen_tv/cubit/movie_details_tab_cubit.dart';
 import 'package:namkeen_tv/widgets/episode_box.dart';
 import 'package:namkeen_tv/widgets/netflix_dropdown.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
+import 'package:namkeen_tv/widgets/inline_trailer_player.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../bloc/netflix_bloc.dart';
@@ -84,53 +85,19 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         ),
         SliverList(
             delegate: SliverChildListDelegate.fixed([
-          Stack(
-            children: [
-              PosterImage(
-                movie: movie,
-                backdrop: true,
-                borderRadius: BorderRadius.zero,
-              ),
-              Positioned(
-                  bottom: 12.0,
-                  left: 6.0,
-                  child: SizedBox(
-                    height: 32.0,
-                    child: TextButton(
-                        style: TextButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(2.0)),
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.black.withOpacity(.3)),
-                        onPressed: () {
-                          if (movie.trailerUrl != null &&
-                              movie.trailerUrl!.isNotEmpty) {
-                            context.push('/video-player', extra: {
-                              'videoUrl': movie.videoUrl ?? '',
-                              'trailerUrl': movie.trailerUrl,
-                              'isTrailer': true,
-                            });
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    'Trailer not available for "${movie.name}". Please add trailer_url in the database.'),
-                                duration: const Duration(seconds: 4),
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text('Preview')),
-                  )),
-              Positioned(
-                  bottom: 6.0,
-                  right: 6.0,
-                  child: IconButton(
-                      onPressed: () {}, icon: const Icon(LucideIcons.volumeX)))
-            ],
-          ),
+          // Auto-playing trailer or poster image
+          if (movie.trailerUrl != null && movie.trailerUrl!.isNotEmpty)
+            InlineTrailerPlayer(
+              trailerUrl: movie.trailerUrl!,
+              fullVideoUrl: movie.videoUrl,
+              title: movie.name,
+            )
+          else
+            PosterImage(
+              movie: movie,
+              backdrop: true,
+              borderRadius: BorderRadius.zero,
+            ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
@@ -201,6 +168,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                       'videoUrl': movie.videoUrl!,
                       'trailerUrl': movie.trailerUrl,
                       'isTrailer': false,
+                      'videoId': movie.id.toString(), // Add movie ID for resume
                     });
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(

@@ -107,6 +107,7 @@ class NamkeenTvApp extends StatelessWidget {
             videoUrl: params?['videoUrl'] ?? '',
             trailerUrl: params?['trailerUrl'],
             isTrailer: params?['isTrailer'] ?? false,
+            videoId: params?['videoId']?.toString(),
           );
         },
       ),

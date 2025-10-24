@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdvancedVideoPlayer extends StatefulWidget {
   final String videoUrl;
   final String? trailerUrl;
   final bool isTrailer;
   final String title;
+  final String? videoId; // Unique identifier for saving progress
   final List<SubtitleTrack>? subtitles;
   final List<AudioTrack>? audioTracks;
   final bool autoPlay;
@@ -25,6 +27,7 @@ class AdvancedVideoPlayer extends StatefulWidget {
     this.trailerUrl,
     this.isTrailer = false,
     required this.title,
+    this.videoId,
     this.subtitles,
     this.audioTracks,
     this.autoPlay = false,
@@ -71,6 +74,60 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
         _enterFullScreen();
       });
     }
+  }
+
+  // Get saved playback position from SharedPreferences
+  Future<Duration?> _getSavedPosition() async {
+    if (widget.videoId == null) return null;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedSeconds = prefs.getInt('video_position_${widget.videoId}');
+      if (savedSeconds != null && savedSeconds > 0) {
+        return Duration(seconds: savedSeconds);
+      }
+    } catch (e) {
+      debugPrint('Error loading saved position: $e');
+    }
+    return null;
+  }
+
+  // Save current playback position to SharedPreferences
+  Future<void> _savePosition(Duration position) async {
+    if (widget.videoId == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+          'video_position_${widget.videoId}', position.inSeconds);
+    } catch (e) {
+      debugPrint('Error saving position: $e');
+    }
+  }
+
+  // Clear saved position (called when video ends or user finishes watching)
+  Future<void> _clearSavedPosition() async {
+    if (widget.videoId == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('video_position_${widget.videoId}');
+    } catch (e) {
+      debugPrint('Error clearing saved position: $e');
+    }
+  }
+
+  // Format duration for display (e.g., "1:23:45" or "12:34")
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+
+    if (hours > 0) {
+      return '$hours:${twoDigits(minutes)}:${twoDigits(seconds)}';
+    }
+    return '${minutes}:${twoDigits(seconds)}';
   }
 
   Future<void> _initializePlayer() async {
@@ -159,20 +216,49 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
         },
       );
 
-      // Start at specific time if provided
+      // Load saved position or use startAt parameter
+      Duration? resumePosition;
       if (widget.startAt != null) {
-        await _videoPlayerController.seekTo(widget.startAt!);
+        resumePosition = widget.startAt;
+      } else {
+        resumePosition = await _getSavedPosition();
       }
 
-      // Listen for video completion
+      // Start at specific time if provided or from saved position
+      if (resumePosition != null && resumePosition.inSeconds > 0) {
+        await _videoPlayerController.seekTo(resumePosition);
+
+        // Show a snackbar to inform user about resume
+        if (mounted && resumePosition.inSeconds > 10) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Resuming from ${_formatDuration(resumePosition)}'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.black87,
+            ),
+          );
+        }
+      }
+
+      // Listen for video completion and position changes
       _videoPlayerController.addListener(() {
-        if (_videoPlayerController.value.position ==
-            _videoPlayerController.value.duration) {
+        final position = _videoPlayerController.value.position;
+        final duration = _videoPlayerController.value.duration;
+
+        // Check if video ended (within 5 seconds of the end)
+        if (duration.inSeconds > 0 &&
+            (duration.inSeconds - position.inSeconds) <= 5) {
           widget.onVideoEnded?.call();
+          _clearSavedPosition(); // Clear saved position when video ends
+        } else {
+          // Save position every 5 seconds (not too frequently to avoid performance issues)
+          if (position.inSeconds % 5 == 0 && position.inSeconds > 0) {
+            _savePosition(position);
+          }
         }
 
         // Report position changes
-        widget.onPositionChanged?.call(_videoPlayerController.value.position);
+        widget.onPositionChanged?.call(position);
       });
 
       setState(() {
@@ -489,57 +575,65 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: _isFullScreen
-          ? null
-          : AppBar(
-              backgroundColor: Colors.black,
-              title: Text(
-                widget.title,
-                style: const TextStyle(color: Colors.white),
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.high_quality, color: Colors.white),
-                  onPressed: _showQualitySettings,
+    return PopScope(
+      canPop: !_isFullScreen,
+      onPopInvoked: (bool didPop) {
+        if (!didPop && _isFullScreen) {
+          _exitFullScreen();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: _isFullScreen
+            ? null
+            : AppBar(
+                backgroundColor: Colors.black,
+                title: Text(
+                  widget.title,
+                  style: const TextStyle(color: Colors.white),
                 ),
-                if (widget.subtitles != null && widget.subtitles!.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.subtitles, color: Colors.white),
-                    onPressed: _showSubtitleSettings,
-                  ),
-                if (widget.audioTracks != null &&
-                    widget.audioTracks!.length > 1)
-                  IconButton(
-                    icon: const Icon(Icons.audiotrack, color: Colors.white),
-                    onPressed: _showAudioSettings,
-                  ),
-                IconButton(
-                  icon: Icon(
-                    _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                    color: Colors.white,
-                  ),
-                  onPressed: _toggleFullScreen,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-              ],
-            ),
-      body: GestureDetector(
-        onTap: () {
-          if (_isFullScreen) {
-            _toggleControls();
-          }
-        },
-        child: Stack(
-          children: [
-            _buildVideoPlayer(),
-            // Fullscreen overlay controls - only show when _showControls is true
-            if (_isFullScreen && _showControls) _buildFullscreenControls(),
-          ],
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.high_quality, color: Colors.white),
+                    onPressed: _showQualitySettings,
+                  ),
+                  if (widget.subtitles != null && widget.subtitles!.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.subtitles, color: Colors.white),
+                      onPressed: _showSubtitleSettings,
+                    ),
+                  if (widget.audioTracks != null &&
+                      widget.audioTracks!.length > 1)
+                    IconButton(
+                      icon: const Icon(Icons.audiotrack, color: Colors.white),
+                      onPressed: _showAudioSettings,
+                    ),
+                  IconButton(
+                    icon: Icon(
+                      _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                      color: Colors.white,
+                    ),
+                    onPressed: _toggleFullScreen,
+                  ),
+                ],
+              ),
+        body: GestureDetector(
+          onTap: () {
+            if (_isFullScreen) {
+              _toggleControls();
+            }
+          },
+          child: Stack(
+            children: [
+              _buildVideoPlayer(),
+              // Fullscreen overlay controls - only show when _showControls is true
+              if (_isFullScreen && _showControls) _buildFullscreenControls(),
+            ],
+          ),
         ),
       ),
     );
@@ -683,6 +777,19 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
 
   @override
   void dispose() {
+    // Save current position before disposing
+    if (_isInitialized && !_hasError) {
+      final position = _videoPlayerController.value.position;
+      final duration = _videoPlayerController.value.duration;
+
+      // Only save if video hasn't ended (not within last 5 seconds)
+      if (duration.inSeconds > 0 &&
+          (duration.inSeconds - position.inSeconds) > 5 &&
+          position.inSeconds > 0) {
+        _savePosition(position);
+      }
+    }
+
     _videoPlayerController.dispose();
     _chewieController?.dispose();
     WakelockPlus.disable();
