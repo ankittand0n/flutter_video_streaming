@@ -1,9 +1,7 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
-import 'package:namkeen_tv/widgets/video_player_widget.dart';
-import 'package:namkeen_tv/widgets/web_youtube_player.dart';
 
 class MovieTrailer extends StatelessWidget {
   const MovieTrailer(
@@ -18,18 +16,11 @@ class MovieTrailer extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (movie.trailerUrl != null && movie.trailerUrl!.isNotEmpty) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => kIsWeb
-                  ? WebYouTubePlayer(youtubeUrl: movie.trailerUrl!)
-                  : VideoPlayerWidget(
-                      videoUrl: movie.videoUrl ?? '',
-                      trailerUrl: movie.trailerUrl,
-                      isTrailer: true,
-                    ),
-            ),
-          );
+          context.push('/video-player', extra: {
+            'videoUrl': movie.videoUrl ?? '',
+            'trailerUrl': movie.trailerUrl,
+            'isTrailer': true,
+          });
         }
       },
       child: Column(

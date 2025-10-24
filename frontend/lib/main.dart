@@ -4,6 +4,7 @@ import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/screens/home.dart';
 import 'package:namkeen_tv/screens/movie_details.dart';
 import 'package:namkeen_tv/screens/netflix_scaffold.dart';
+import 'package:namkeen_tv/widgets/video_player_widget.dart';
 import 'package:go_router/go_router.dart';
 
 import 'bloc/blocs.dart';
@@ -96,6 +97,18 @@ class NamkeenTvApp extends StatelessWidget {
                 ),
               ]),
         ],
+      ),
+      // Video player route outside shell - no bottom navigation
+      GoRoute(
+        path: '/video-player',
+        builder: (context, state) {
+          final params = state.extra as Map<String, dynamic>?;
+          return VideoPlayerWidget(
+            videoUrl: params?['videoUrl'] ?? '',
+            trailerUrl: params?['trailerUrl'],
+            isTrailer: params?['isTrailer'] ?? false,
+          );
+        },
       ),
     ],
   );

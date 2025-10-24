@@ -4,7 +4,7 @@ import '../config/app_config.dart';
 
 class ApiService {
   static String get baseUrl => AppConfig.apiBaseUrl;
-  
+
   // Movies
   static Future<List<Map<String, dynamic>>> getMovies({
     int page = 1,
@@ -21,7 +21,7 @@ class ApiService {
       );
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['data']);
@@ -40,7 +40,7 @@ class ApiService {
         Uri.parse('$baseUrl/movies/$id'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['data'];
@@ -82,12 +82,13 @@ class ApiService {
         Uri.parse('$baseUrl/movies/popular?page=$page&limit=$limit'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['data']);
       } else {
-        throw Exception('Failed to load popular movies: ${response.statusCode}');
+        throw Exception(
+            'Failed to load popular movies: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching popular movies: $e');
@@ -104,12 +105,13 @@ class ApiService {
         Uri.parse('$baseUrl/movies/top-rated?page=$page&limit=$limit'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['data']);
       } else {
-        throw Exception('Failed to load top rated movies: ${response.statusCode}');
+        throw Exception(
+            'Failed to load top rated movies: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching top rated movies: $e');
@@ -127,7 +129,7 @@ class ApiService {
         Uri.parse('$baseUrl/tv?page=$page&limit=$limit'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['data']);
@@ -147,7 +149,7 @@ class ApiService {
         Uri.parse('$baseUrl/genres'),
         headers: {'Content-Type': 'application/json'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['data']);

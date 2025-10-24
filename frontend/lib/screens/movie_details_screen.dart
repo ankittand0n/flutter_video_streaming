@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
-import 'package:namkeen_tv/widgets/video_player_widget.dart';
 import 'package:namkeen_tv/config/app_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -220,31 +220,21 @@ class MovieDetailsScreen extends StatelessWidget {
 
   void _playMovie(BuildContext context) {
     if (movie.hasVideo) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => VideoPlayerWidget(
-            videoUrl: movie.videoUrl!,
-            trailerUrl: movie.trailerUrl,
-            isTrailer: false,
-          ),
-          fullscreenDialog: true,
-        ),
-      );
+      context.push('/video-player', extra: {
+        'videoUrl': movie.videoUrl!,
+        'trailerUrl': movie.trailerUrl,
+        'isTrailer': false,
+      });
     }
   }
 
   void _playTrailer(BuildContext context) {
     if (movie.hasTrailer) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => VideoPlayerWidget(
-            videoUrl: movie.videoUrl ?? '',
-            trailerUrl: movie.trailerUrl,
-            isTrailer: true,
-          ),
-          fullscreenDialog: true,
-        ),
-      );
+      context.push('/video-player', extra: {
+        'videoUrl': movie.videoUrl ?? '',
+        'trailerUrl': movie.trailerUrl,
+        'isTrailer': true,
+      });
     }
   }
 

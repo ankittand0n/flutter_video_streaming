@@ -1,15 +1,12 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/cubit/movie_details_tab_cubit.dart';
 import 'package:namkeen_tv/widgets/episode_box.dart';
 import 'package:namkeen_tv/widgets/netflix_dropdown.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
-import 'package:namkeen_tv/widgets/video_player_widget.dart';
-import 'package:namkeen_tv/widgets/web_video_player.dart';
-import 'package:namkeen_tv/widgets/web_youtube_player.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../bloc/netflix_bloc.dart';
@@ -110,19 +107,11 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                         onPressed: () {
                           if (movie.trailerUrl != null &&
                               movie.trailerUrl!.isNotEmpty) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => kIsWeb
-                                    ? WebYouTubePlayer(
-                                        youtubeUrl: movie.trailerUrl!)
-                                    : VideoPlayerWidget(
-                                        videoUrl: movie.videoUrl ?? '',
-                                        trailerUrl: movie.trailerUrl,
-                                        isTrailer: true,
-                                      ),
-                              ),
-                            );
+                            context.push('/video-player', extra: {
+                              'videoUrl': movie.videoUrl ?? '',
+                              'trailerUrl': movie.trailerUrl,
+                              'isTrailer': true,
+                            });
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -208,18 +197,11 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                     foregroundColor: Colors.black),
                 onPressed: () {
                   if (movie.videoUrl != null && movie.videoUrl!.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => kIsWeb
-                            ? WebVideoPlayer(videoUrl: movie.videoUrl!)
-                            : VideoPlayerWidget(
-                                videoUrl: movie.videoUrl!,
-                                trailerUrl: movie.trailerUrl,
-                                isTrailer: false,
-                              ),
-                      ),
-                    );
+                    context.push('/video-player', extra: {
+                      'videoUrl': movie.videoUrl!,
+                      'trailerUrl': movie.trailerUrl,
+                      'isTrailer': false,
+                    });
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
