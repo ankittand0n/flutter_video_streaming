@@ -108,12 +108,14 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                             foregroundColor: Colors.white,
                             backgroundColor: Colors.black.withOpacity(.3)),
                         onPressed: () {
-                          if (movie.trailerUrl != null && movie.trailerUrl!.isNotEmpty) {
+                          if (movie.trailerUrl != null &&
+                              movie.trailerUrl!.isNotEmpty) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => kIsWeb
-                                    ? WebYouTubePlayer(youtubeUrl: movie.trailerUrl!)
+                                    ? WebYouTubePlayer(
+                                        youtubeUrl: movie.trailerUrl!)
                                     : VideoPlayerWidget(
                                         videoUrl: movie.videoUrl ?? '',
                                         trailerUrl: movie.trailerUrl,
@@ -124,7 +126,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Trailer not available for "${movie.name}". Please add trailer_url in the database.'),
+                                content: Text(
+                                    'Trailer not available for "${movie.name}". Please add trailer_url in the database.'),
                                 duration: const Duration(seconds: 4),
                               ),
                             );
@@ -154,7 +157,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
             child: Row(
               children: [
                 Text(
-                  '${movie.releaseDate?.year ?? 'N/A'}',
+                  '${movie.year.isNotEmpty ? movie.year : 'N/A'}',
                   style: const TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(
@@ -220,7 +223,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Video not available for "${movie.name}". Please add video_url in the database.'),
+                        content: Text(
+                            'Video not available for "${movie.name}". Please add video_url in the database.'),
                         duration: const Duration(seconds: 4),
                       ),
                     );

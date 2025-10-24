@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:namkeen_tv/models/movie.dart';
+import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
 import 'package:namkeen_tv/widgets/video_player_widget.dart';
+import 'package:namkeen_tv/config/app_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MovieDetailsScreen extends StatelessWidget {
@@ -60,7 +61,7 @@ class MovieDetailsScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // Movie content
           SliverToBoxAdapter(
             child: Padding(
@@ -91,9 +92,9 @@ class MovieDetailsScreen extends StatelessWidget {
                         ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Rating and duration
                   Row(
                     children: [
@@ -116,9 +117,9 @@ class MovieDetailsScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Action buttons
                   Row(
                     children: [
@@ -145,9 +146,9 @@ class MovieDetailsScreen extends StatelessWidget {
                         ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Overview
                   const Text(
                     'Overview',
@@ -166,14 +167,16 @@ class MovieDetailsScreen extends StatelessWidget {
                       height: 1.5,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Additional info
-                  _buildInfoRow('Language', movie.originalLanguage.toUpperCase()),
-                  _buildInfoRow('Popularity', movie.popularity.toStringAsFixed(1)),
+                  _buildInfoRow(
+                      'Language', movie.originalLanguage.toUpperCase()),
+                  _buildInfoRow(
+                      'Popularity', movie.popularity.toStringAsFixed(1)),
                   _buildInfoRow('Release Date', movie.releaseDate),
-                  
+
                   const SizedBox(height: 32),
                 ],
               ),
@@ -246,7 +249,8 @@ class MovieDetailsScreen extends StatelessWidget {
   }
 
   void _shareMovie(BuildContext context) async {
-    final Uri url = Uri.parse('https://namkeen-tv.com/movie/${movie.id}');
+    // Use centralized configuration for share URL
+    final Uri url = Uri.parse(AppConfig.getShareUrl(movie.id.toString()));
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {

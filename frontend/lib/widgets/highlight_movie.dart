@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
+import 'dart:math';
 
 import '../bloc/netflix_bloc.dart';
 import '../utils/utils.dart';
@@ -19,11 +20,20 @@ class HighlightMovie extends StatelessWidget {
       final movies = context.watch<DiscoverMoviesBloc>().state;
       final width = MediaQuery.of(context).size.width;
       // Limit highlight height on desktop for better proportions
-      final highlightHeight = width > 1200 
-          ? 700.0 
-          : (width > 800 ? 600.0 : width + (width * .6));
-      
+      final highlightHeight =
+          width > 1200 ? 700.0 : (width > 800 ? 600.0 : width + (width * .6));
+
       if (movies is DiscoverMovies) {
+        // Use random movie instead of always first
+        final random = Random();
+        final randomMovie = movies.list.isNotEmpty
+            ? movies.list[random.nextInt(movies.list.length)]
+            : null;
+
+        if (randomMovie == null) {
+          return const SizedBox(); // Return empty if no movies
+        }
+
         return Stack(
           children: [
             Container(
@@ -40,7 +50,8 @@ class HighlightMovie extends StatelessWidget {
               child: PosterImage(
                 original: true,
                 borderRadius: BorderRadius.zero,
-                movie: movies.list.first,
+                movie: randomMovie,
+                backdrop: true, // Use backdrop for better visual
                 width: width,
                 height: highlightHeight,
               ),
@@ -54,7 +65,7 @@ class HighlightMovie extends StatelessWidget {
                 child: Column(
                   children: [
                     LogoImage(
-                      movie: movies.list.first,
+                      movie: randomMovie,
                       size: 3,
                     ),
                     const SizedBox(

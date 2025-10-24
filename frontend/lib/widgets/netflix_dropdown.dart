@@ -26,7 +26,7 @@ class NetflixDropDownScreen extends StatelessWidget {
         backgroundColor: Colors.black.withOpacity(.9),
         body: Center(
           child: ListView.builder(
-            itemCount: movie.seasons,
+            itemCount: movie.seasons ?? 0,
             shrinkWrap: true,
             itemBuilder: ((context, index) {
               var season = index + 1;

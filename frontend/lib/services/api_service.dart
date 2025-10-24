@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3000';
+  static String get baseUrl => AppConfig.apiBaseUrl;
   
   // Movies
   static Future<List<Map<String, dynamic>>> getMovies({
@@ -161,18 +162,6 @@ class ApiService {
 
   // Helper method to get full image URL
   static String getImageUrl(String? imagePath) {
-    if (imagePath == null || imagePath.isEmpty) {
-      return 'https://via.placeholder.com/300x450?text=No+Image';
-    }
-    
-    // If it's already a full URL, return as is
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
-    
-  // Otherwise, prepend the backend URL (use localhost during local development)
-  final fullUrl = 'http://localhost:3000$imagePath';
-    print('Generated image URL: $fullUrl');
-    return fullUrl;
+    return AppConfig.getImageUrl(imagePath);
   }
 }

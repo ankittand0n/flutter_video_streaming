@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:namkeen_tv/cubit/animation_status_cubit.dart';
 import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/screens/home.dart';
 import 'package:namkeen_tv/screens/movie_details.dart';
@@ -24,7 +22,7 @@ class NamkeenTvApp extends StatelessWidget {
         routeInformationProvider: _router.routeInformationProvider,
         routeInformationParser: _router.routeInformationParser,
         routerDelegate: _router.routerDelegate,
-                 title: 'Namkeen TV',
+        title: 'Namkeen TV',
         theme: ThemeData(
             brightness: Brightness.dark,
             scaffoldBackgroundColor: backgroundColor,
@@ -61,28 +59,25 @@ class NamkeenTvApp extends StatelessWidget {
               },
               routes: [
                 GoRoute(
+                    name: 'Movies',
+                    path: 'movies',
+                    builder: (BuildContext context, GoRouterState state) {
+                      return HomeScreen(name: state.name);
+                    },
+                    routes: [
+                      GoRoute(
+                        path: 'details',
+                        builder: (BuildContext context, GoRouterState state) {
+                          return MovieDetailsScreen(
+                              movie: state.extra as Movie);
+                        },
+                      ),
+                    ]),
+                GoRoute(
                     name: 'TV Shows',
                     path: 'tvshows',
                     builder: (BuildContext context, GoRouterState state) {
                       return HomeScreen(name: state.name);
-                    },
-                    pageBuilder: (context, state) {
-                      return CustomTransitionPage<void>(
-                          key: state.pageKey,
-                          child: HomeScreen(name: state.name),
-                          transitionDuration: const Duration(milliseconds: 600),
-                          transitionsBuilder:
-                              (context, animation, secondaryAnimation, child) {
-                            final status = context.read<AnimationStatusCubit>();
-                            animation.removeStatusListener(status.onStatus);
-                            animation.addStatusListener(status.onStatus);
-                            secondaryAnimation
-                                .removeStatusListener(status.onStatus);
-                            secondaryAnimation
-                                .addStatusListener(status.onStatus);
-                            return FadeTransition(
-                                opacity: animation, child: child);
-                          });
                     },
                     routes: [
                       GoRoute(

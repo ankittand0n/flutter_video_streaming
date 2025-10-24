@@ -52,50 +52,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  void didChangeDependencies() {
-    // Removed animation status management as we're using simpler navigation
-    super.didChangeDependencies();
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
-
-  final _shimmer = Shimmer(
-    gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: <Color>[
-          Colors.grey[900]!,
-          Colors.grey[900]!,
-          Colors.grey[800]!,
-          Colors.grey[900]!,
-          Colors.grey[900]!
-        ],
-        stops: const <double>[
-          0.0,
-          0.35,
-          0.5,
-          0.65,
-          1.0
-        ]),
-    child: ListView(
-      scrollDirection: Axis.horizontal,
-      children: List.generate(
-          6,
-          (index) => Container(
-                width: 110,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.0),
-                  color: Colors.red,
-                ),
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
-              )),
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
-    // Keys for sections
-    // padding is defined below and used for section spacing
+    // Build shimmer effect for loading states
+    final _shimmer = Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 10,
+        itemBuilder: (_, __) => Container(
+          width: 120.0,
+          height: 180.0,
+          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+        ),
+      ),
+    );
+
     final state = GoRouterState.of(context);
+    // Check if we're on a specific page
     final isTvPage = state.location.contains('tvshows');
     final isMoviePage = state.location.contains('movies');
     const padding =
@@ -246,6 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (movies is TrendingMovieListDaily) {
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           itemCount: movies.list.length,
                           itemBuilder: (context, index) {
                             final movie = movies.list[index];
@@ -276,6 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (movies is TrendingMovieListWeekly) {
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           itemCount: movies.list.length,
                           itemBuilder: (context, index) {
                             final movie = movies.list[index];
@@ -305,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (movies is TrendingMovieListDaily) {
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           itemCount: movies.list.length,
                           itemBuilder: (context, index) {
                             final movie = movies.list[index];
@@ -364,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (movies is TrendingTvShowListDaily) {
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           itemCount: movies.list.length,
                           itemBuilder: (context, index) {
                             final movie = movies.list[index];

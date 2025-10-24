@@ -2,6 +2,7 @@ import 'package:namkeen_tv/services/api_service.dart';
 import 'package:namkeen_tv/model/configuration.dart';
 import 'package:namkeen_tv/model/season.dart';
 import 'package:namkeen_tv/model/tmdb_image.dart';
+import 'package:namkeen_tv/config/app_config.dart';
 
 import '../model/movie.dart';
 
@@ -12,19 +13,25 @@ class TMDBRepository {
     // Our backend exposes /movies and /tv endpoints with pagination
     if (type == 'tv') {
       final tvs = await ApiService.getTvSeries();
-      return tvs.map((item) => Movie.fromJson(item, medialType: 'tv')).toList();
+      return tvs
+          .map((item) => Movie.fromJson(item, medialType: 'tv'))
+          .toList()
+          .cast<Movie>();
     }
 
     final movies = await ApiService.getMovies();
-    return movies.map((item) => Movie.fromJson(item, medialType: 'movie')).toList();
+    return movies
+        .map((item) => Movie.fromJson(item, medialType: 'movie'))
+        .toList()
+        .cast<Movie>();
   }
 
   Future<Configuration> getConfiguration() async {
     // Backend doesn't currently expose TMDB configuration; return defaults
     return Configuration.fromJson({
       'images': {
-        'base_url': ApiService.baseUrl,
-        'secure_base_url': ApiService.baseUrl,
+        'base_url': AppConfig.imageBaseUrl,
+        'secure_base_url': AppConfig.imageBaseUrl,
         'backdrop_sizes': ['original'],
         'logo_sizes': ['original'],
         'poster_sizes': ['original'],
@@ -53,11 +60,17 @@ class TMDBRepository {
   Future<List<Movie>> discover(type) async {
     if (type == 'tv') {
       final tvs = await ApiService.getTvSeries();
-      return tvs.map((item) => Movie.fromJson(item, medialType: 'tv')).toList();
+      return tvs
+          .map((item) => Movie.fromJson(item, medialType: 'tv'))
+          .toList()
+          .cast<Movie>();
     }
 
     final movies = await ApiService.getMovies();
-    return movies.map((item) => Movie.fromJson(item, medialType: 'movie')).toList();
+    return movies
+        .map((item) => Movie.fromJson(item, medialType: 'movie'))
+        .toList()
+        .cast<Movie>();
   }
 
   Future<TMDBImages> getImages(id, type) async {
@@ -77,17 +90,37 @@ class TMDBRepository {
       if (data != null) {
         final posterPath = data['poster_path'];
         final backdropPath = data['backdrop_path'];
-        if (posterPath != null && posterPath is String && posterPath.isNotEmpty) {
-          posters.add({'file_path': posterPath, 'width': 0, 'height': 0, 'aspect_ratio': 1.0});
+        if (posterPath != null &&
+            posterPath is String &&
+            posterPath.isNotEmpty) {
+          posters.add({
+            'file_path': posterPath,
+            'width': 0,
+            'height': 0,
+            'aspect_ratio': 1.0
+          });
         }
-        if (backdropPath != null && backdropPath is String && backdropPath.isNotEmpty) {
-          backdrops.add({'file_path': backdropPath, 'width': 0, 'height': 0, 'aspect_ratio': 1.0});
+        if (backdropPath != null &&
+            backdropPath is String &&
+            backdropPath.isNotEmpty) {
+          backdrops.add({
+            'file_path': backdropPath,
+            'width': 0,
+            'height': 0,
+            'aspect_ratio': 1.0
+          });
         }
       }
 
-      return TMDBImages.fromJson({'id': id, 'posters': posters, 'backdrops': backdrops, 'logos': logos});
+      return TMDBImages.fromJson({
+        'id': id,
+        'posters': posters,
+        'backdrops': backdrops,
+        'logos': logos
+      });
     } catch (e) {
-      return TMDBImages.fromJson({'id': id, 'posters': [], 'backdrops': [], 'logos': []});
+      return TMDBImages.fromJson(
+          {'id': id, 'posters': [], 'backdrops': [], 'logos': []});
     }
   }
 }

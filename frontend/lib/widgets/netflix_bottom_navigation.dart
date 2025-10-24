@@ -13,7 +13,17 @@ class NextflixBottomNavigation extends StatefulWidget {
 }
 
 class _NextflixBottomNavigationState extends State<NextflixBottomNavigation> {
-  int _index = 0;
+  int _getCurrentIndex(BuildContext context) {
+    final location = GoRouterState.of(context).location;
+    if (location.contains('/home/movies')) {
+      return 1;
+    } else if (location.contains('/home/tvshows')) {
+      return 2;
+    } else {
+      return 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
@@ -36,7 +46,7 @@ class _NextflixBottomNavigationState extends State<NextflixBottomNavigation> {
         ),
       ],
       type: BottomNavigationBarType.fixed,
-      currentIndex: _index,
+      currentIndex: _getCurrentIndex(context),
       selectedItemColor: Colors.white,
       onTap: (value) {
         switch (value) {
@@ -44,16 +54,12 @@ class _NextflixBottomNavigationState extends State<NextflixBottomNavigation> {
             context.go('/home');
             break;
           case 1:
-            // Navigate to home and request the movies section to be shown
-            context.go('/home?section=movies');
+            context.go('/home/movies');
             break;
           case 2:
             context.go('/home/tvshows');
             break;
         }
-        setState(() {
-          _index = value;
-        });
       },
     );
   }

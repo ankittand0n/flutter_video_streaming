@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:namkeen_tv/models/movie.dart';
+import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/services/api_service.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
 import 'package:namkeen_tv/screens/movie_details_screen.dart';
@@ -40,8 +40,10 @@ class _HomeApiScreenState extends State<HomeApiScreen> {
 
       setState(() {
         _movies = results[0].map((json) => Movie.fromJson(json)).toList();
-        _popularMovies = results[1].map((json) => Movie.fromJson(json)).toList();
-        _topRatedMovies = results[2].map((json) => Movie.fromJson(json)).toList();
+        _popularMovies =
+            results[1].map((json) => Movie.fromJson(json)).toList();
+        _topRatedMovies =
+            results[2].map((json) => Movie.fromJson(json)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -92,14 +94,14 @@ class _HomeApiScreenState extends State<HomeApiScreen> {
         slivers: [
           // Featured movie
           if (_movies.isNotEmpty) _buildFeaturedMovie(_movies.first),
-          
+
           // Movies section
           _buildSection('Movies', _movies),
-          
+
           // Popular movies section
           if (_popularMovies.isNotEmpty)
             _buildSection('Popular Movies', _popularMovies),
-          
+
           // Top rated movies section
           if (_topRatedMovies.isNotEmpty)
             _buildSection('Top Rated Movies', _topRatedMovies),

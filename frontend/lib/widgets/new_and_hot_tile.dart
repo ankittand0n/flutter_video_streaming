@@ -15,7 +15,7 @@ class NewAndHotTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var date = movie.releaseDate ?? DateTime.now();
+    var date = movie.releaseDateAsDateTime ?? DateTime.now();
     return InkWell(
       onTap: () {
         context.go('${GoRouterState.of(context).location}/details',
