@@ -1,30 +1,33 @@
-import 'dart:js' as js;
+import 'dart:js_interop';
+
+// External JavaScript interop for reading window.ENV
+@JS('ENV.apiBaseUrl')
+external String? get _apiBaseUrl;
+
+@JS('ENV.storageBaseUrl')
+external String? get _storageBaseUrl;
 
 class AppConfig {
   // Runtime environment configuration (injected by Docker)
   static String get apiBaseUrl {
     try {
       // Try to read from window.ENV (injected by Docker at runtime)
-      if (js.context.hasProperty('ENV')) {
-        final env = js.context['ENV'];
-        if (env != null && env.hasProperty('apiBaseUrl')) {
-          return env['apiBaseUrl'] as String;
-        }
+      final url = _apiBaseUrl;
+      if (url != null && url.isNotEmpty) {
+        return url;
       }
     } catch (e) {
       print('Failed to read runtime config: $e');
     }
     // Fallback to default
-    return 'https://backend-1040805906877.asia-south2.run.app/api';
+    return 'https://admin.namkeentv.com/api';
   }
 
   static String get storageBaseUrl {
     try {
-      if (js.context.hasProperty('ENV')) {
-        final env = js.context['ENV'];
-        if (env != null && env.hasProperty('storageBaseUrl')) {
-          return env['storageBaseUrl'] as String;
-        }
+      final url = _storageBaseUrl;
+      if (url != null && url.isNotEmpty) {
+        return url;
       }
     } catch (e) {
       print('Failed to read runtime config: $e');
