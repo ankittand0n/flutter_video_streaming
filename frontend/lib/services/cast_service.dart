@@ -36,6 +36,9 @@ class CastService {
       // Initialize with default media receiver app ID (for generic media content)
       _initializeCastApi();
 
+      // Give the Cast SDK a moment to fully initialize
+      await Future.delayed(const Duration(milliseconds: 500));
+
       _isInitialized = true;
       debugPrint('Cast service initialized successfully');
     } catch (e) {
@@ -56,11 +59,20 @@ class CastService {
 
   bool _isCastApiAvailable() {
     try {
-      // Check if chrome.cast API is available
+      // Check if chrome.cast API and cast.framework are available
       final chrome = js.globalContext.getProperty('chrome'.toJS);
       if (chrome == null || chrome.isNull || chrome.isUndefined) return false;
-      final cast = (chrome as js.JSObject).getProperty('cast'.toJS);
-      return cast != null && !cast.isNull && !cast.isUndefined;
+      final castObj = (chrome as js.JSObject).getProperty('cast'.toJS);
+      if (castObj == null || castObj.isNull || castObj.isUndefined)
+        return false;
+
+      // Also check for cast.framework
+      final castGlobal = js.globalContext.getProperty('cast'.toJS);
+      if (castGlobal == null || castGlobal.isNull || castGlobal.isUndefined)
+        return false;
+      final framework =
+          (castGlobal as js.JSObject).getProperty('framework'.toJS);
+      return framework != null && !framework.isNull && !framework.isUndefined;
     } catch (e) {
       return false;
     }
@@ -71,27 +83,29 @@ class CastService {
       // Initialize Cast API with default settings
       final initCode = '''
         (function() {
-          if (window.chrome && window.chrome.cast) {
-            window.__onCastApiAvailable = function(isAvailable) {
-              if (isAvailable) {
-                const context = cast.framework.CastContext.getInstance();
-                context.setOptions({
-                  receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-                  autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-                });
-                
-                // Listen for session state changes
-                context.addEventListener(
-                  cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
-                  function(event) {
-                    window.flutterCastStateChanged && window.flutterCastStateChanged(
-                      event.sessionState === cast.framework.SessionState.SESSION_STARTED ||
-                      event.sessionState === cast.framework.SessionState.SESSION_RESUMED
-                    );
-                  }
-                );
-              }
-            };
+          if (window.chrome && window.chrome.cast && cast.framework) {
+            try {
+              const context = cast.framework.CastContext.getInstance();
+              context.setOptions({
+                receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+              });
+              
+              // Listen for session state changes
+              context.addEventListener(
+                cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+                function(event) {
+                  window.flutterCastStateChanged && window.flutterCastStateChanged(
+                    event.sessionState === cast.framework.SessionState.SESSION_STARTED ||
+                    event.sessionState === cast.framework.SessionState.SESSION_RESUMED
+                  );
+                }
+              );
+              
+              console.log('[CastService] Cast API initialized successfully');
+            } catch (err) {
+              console.error('[CastService] Error initializing Cast API:', err);
+            }
           }
         })();
       ''';
