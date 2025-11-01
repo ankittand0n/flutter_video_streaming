@@ -8,8 +8,8 @@ const schemas = {
       'string.email': 'Please provide a valid email address',
       'any.required': 'Email is required'
     }),
-    password: Joi.string().min(6).required().messages({
-      'string.min': 'Password must be at least 6 characters long',
+    password: Joi.string().min(4).required().messages({
+      'string.min': 'Password must be at least 4 characters long',
       'any.required': 'Password is required'
     }),
     username: Joi.string().min(3).max(30).pattern(/^[a-zA-Z0-9]+$/).required().messages({
@@ -18,9 +18,9 @@ const schemas = {
       'string.pattern.base': 'Username can only contain letters and numbers',
       'any.required': 'Username is required'
     }),
-    profilename: Joi.string().min(2).max(50).required().messages({
+    profilename: Joi.string().min(2).max(100).required().messages({
       'string.min': 'Profile name must be at least 2 characters long',
-      'string.max': 'Profile name cannot exceed 50 characters',
+      'string.max': 'Profile name cannot exceed 100 characters',
       'any.required': 'Profile name is required'
     })
   }),

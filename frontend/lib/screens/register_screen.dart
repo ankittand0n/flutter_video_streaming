@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
+import 'package:uuid/uuid.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,11 +13,11 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _authService = AuthService();
+  final _uuid = const Uuid();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -25,39 +26,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _identifierController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  String? _validateName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your name';
-    }
-    if (value.length < 2) {
-      return 'Name must be at least 2 characters';
-    }
-    return null;
-  }
-
   String? _validateIdentifier(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please enter your ${_isEmailMode ? 'email' : 'phone number'}';
+      return '${_isEmailMode ? 'Email' : 'Phone number'} is required';
     }
 
     if (_isEmailMode) {
       // Email validation
       final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
       if (!emailRegex.hasMatch(value)) {
-        return 'Please enter a valid email address';
+        return 'Invalid email format (e.g., user@example.com)';
       }
     } else {
       // Phone validation (10 digits only)
       final phoneRegex = RegExp(r'^[0-9]{10}$');
       if (!phoneRegex.hasMatch(value)) {
-        return 'Please enter a valid 10-digit phone number';
+        return 'Phone must be exactly 10 digits (no spaces or dashes)';
       }
     }
     return null;
@@ -65,16 +55,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please enter your password';
+      return 'Password is required';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    if (!value.contains(RegExp(r'[A-Z]'))) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (!value.contains(RegExp(r'[0-9]'))) {
-      return 'Password must contain at least one number';
+    if (value.length < 4) {
+      return 'Password must be at least 4 characters long';
     }
     return null;
   }
@@ -84,13 +68,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return 'Please confirm your password';
     }
     if (value != _passwordController.text) {
-      return 'Passwords do not match';
+      return 'Passwords do not match - please re-enter';
     }
     return null;
   }
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) {
+      // Show which field failed validation
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fix the errors in the form'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -110,7 +101,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final result = await _authService.register(
-        name: _nameController.text.trim(),
+        name: _uuid.v4(),
         identifier: _identifierController.text.trim(),
         password: _passwordController.text,
         isEmail: _isEmailMode,
@@ -211,38 +202,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
-
-                  // Name Input
-                  TextFormField(
-                    controller: _nameController,
-                    keyboardType: TextInputType.name,
-                    textCapitalization: TextCapitalization.words,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Full Name',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      prefixIcon: const Icon(
-                        Icons.person,
-                        color: Colors.white70,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[900],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red),
-                      ),
-                      errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red),
-                      ),
-                    ),
-                    validator: _validateName,
-                  ),
-                  const SizedBox(height: 16),
 
                   // Mode Toggle
                   Row(

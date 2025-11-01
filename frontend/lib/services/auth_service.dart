@@ -68,16 +68,9 @@ class AuthService {
     try {
       final url = Uri.parse('${AppConfig.apiBaseUrl}/auth/register');
 
-      // Generate username: remove special characters, keep only alphanumeric
-      String username;
-      if (isEmail) {
-        // Extract part before @ and remove special characters
-        username =
-            identifier.split('@')[0].replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-      } else {
-        // Phone number is already numeric
-        username = identifier;
-      }
+      // Generate username from UUID: remove dashes and take first 12 chars
+      // name parameter is actually a UUID (e.g., "550e8400-e29b-41d4-a716-446655440000")
+      String username = name.replaceAll('-', '').substring(0, 12);
 
       final body = {
         'username': username,
@@ -85,7 +78,7 @@ class AuthService {
             ? identifier
             : '$identifier@phone.temp', // Temporary email for phone users
         'password': password,
-        'profilename': name,
+        'profilename': name, // Use full UUID as profile name
       };
 
       print('Registration request body: ${json.encode(body)}');
@@ -114,9 +107,17 @@ class AuthService {
           'user': data['user'],
         };
       } else {
+        // Format validation error details if present
+        String errorMessage = data['error'] ?? 'Registration failed';
+        if (data['details'] != null && data['details'] is List) {
+          final details = (data['details'] as List)
+              .map((d) => '${d['field']}: ${d['message']}')
+              .join('\n');
+          errorMessage = '$errorMessage\n$details';
+        }
         return {
           'success': false,
-          'message': data['error'] ?? data['details'] ?? 'Registration failed',
+          'message': errorMessage,
         };
       }
     } catch (e) {
