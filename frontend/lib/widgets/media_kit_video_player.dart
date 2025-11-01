@@ -43,6 +43,8 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
   String? _errorMessage;
   bool _isFullScreen = false;
   bool _showControls = true;
+  List<VideoTrack> _videoTracks = [];
+  VideoTrack _currentVideoTrack = VideoTrack.auto();
 
   @override
   void initState() {
@@ -195,6 +197,24 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
         }
       });
 
+      // Listen for available video tracks (for quality selection)
+      _player.stream.tracks.listen((tracks) {
+        if (mounted) {
+          setState(() {
+            _videoTracks = tracks.video;
+          });
+        }
+      });
+
+      // Listen for current video track changes
+      _player.stream.track.listen((track) {
+        if (mounted) {
+          setState(() {
+            _currentVideoTrack = track.video;
+          });
+        }
+      });
+
       setState(() {
         _isInitialized = true;
         _hasError = false;
@@ -275,6 +295,90 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     });
   }
 
+  void _showQualitySettings() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Video Quality',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Auto quality option
+              ListTile(
+                title: const Text(
+                  'Auto',
+                  style: TextStyle(color: Colors.white),
+                ),
+                subtitle: const Text(
+                  'Automatic quality selection',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                leading: Radio<String>(
+                  value: 'auto',
+                  groupValue: _currentVideoTrack.id,
+                  onChanged: (value) {
+                    _player.setVideoTrack(VideoTrack.auto());
+                    Navigator.pop(context);
+                  },
+                  activeColor: Colors.red,
+                ),
+              ),
+              // Available video tracks
+              if (_videoTracks.isNotEmpty)
+                ..._videoTracks.map((track) {
+                  // Extract quality info from track id or title
+                  String label = track.title ?? track.id;
+
+                  // Try to extract resolution from track info
+                  if (track.w != null && track.h != null) {
+                    label = '${track.h}p';
+                    if (track.fps != null) {
+                      label += ' (${track.fps?.round()} fps)';
+                    }
+                  }
+
+                  return ListTile(
+                    title: Text(
+                      label,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: track.w != null && track.h != null
+                        ? Text(
+                            '${track.w}x${track.h}',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          )
+                        : null,
+                    leading: Radio<String>(
+                      value: track.id,
+                      groupValue: _currentVideoTrack.id,
+                      onChanged: (value) {
+                        _player.setVideoTrack(track);
+                        Navigator.pop(context);
+                      },
+                      activeColor: Colors.red,
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -299,6 +403,12 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 actions: [
+                  // Quality settings button
+                  IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.white),
+                    onPressed: _showQualitySettings,
+                  ),
+                  // Fullscreen button
                   IconButton(
                     icon: Icon(
                       _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
@@ -371,6 +481,12 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
+                      ),
+                      // Quality settings button
+                      IconButton(
+                        icon: const Icon(Icons.settings,
+                            color: Colors.white, size: 28),
+                        onPressed: _showQualitySettings,
                       ),
                       // Fullscreen button
                       IconButton(
