@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:namkeen_tv/cubit/movie_details_tab_cubit.dart';
 import 'package:namkeen_tv/widgets/episode_box.dart';
@@ -8,6 +9,7 @@ import 'package:namkeen_tv/widgets/netflix_dropdown.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
 import 'package:namkeen_tv/widgets/inline_trailer_player.dart';
 import 'package:namkeen_tv/widgets/media_kit_video_player.dart';
+import 'package:namkeen_tv/services/cast_service.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../bloc/netflix_bloc.dart';
@@ -76,10 +78,29 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
             },
           ),
           actions: [
-            IconButton(
-              icon: const Icon(LucideIcons.cast),
-              onPressed: () {},
-            ),
+            if (kIsWeb)
+              StreamBuilder<CastState>(
+                stream: CastService.instance.castStateStream,
+                initialData: CastState.notConnected,
+                builder: (context, snapshot) {
+                  final isCasting = snapshot.data == CastState.connected;
+                  return IconButton(
+                    icon: Icon(
+                      LucideIcons.cast,
+                      color: isCasting ? Colors.blue : null,
+                    ),
+                    onPressed: () async {
+                      if (isCasting) {
+                        // Show options: stop casting or cast media
+                        _showCastOptions();
+                      } else {
+                        // Show cast device picker
+                        await CastService.instance.showCastDialog();
+                      }
+                    },
+                  );
+                },
+              ),
           ],
           pinned: true,
         ),
@@ -406,6 +427,62 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
           height: 8.0,
         )
       ],
+    );
+  }
+
+  void _showCastOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(LucideIcons.cast, color: Colors.white),
+                title: const Text('Cast Movie',
+                    style: TextStyle(color: Colors.white)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final movie = widget.movie;
+                  if (movie.videoUrl != null && movie.videoUrl!.isNotEmpty) {
+                    await CastService.instance.castMedia(
+                      mediaUrl: movie.videoUrl!,
+                      title: movie.name,
+                      description: movie.overview,
+                      imageUrl: movie.backdropPath.isNotEmpty
+                          ? 'https://image.tmdb.org/t/p/w500${movie.backdropPath}'
+                          : null,
+                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Casting to device...')),
+                      );
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(LucideIcons.x, color: Colors.white),
+                title: const Text('Stop Casting',
+                    style: TextStyle(color: Colors.white)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await CastService.instance.stopCasting();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Disconnected from cast device')),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

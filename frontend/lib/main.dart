@@ -8,19 +8,26 @@ import 'package:namkeen_tv/screens/login_screen.dart';
 import 'package:namkeen_tv/screens/register_screen.dart';
 import 'package:namkeen_tv/screens/profile_screen.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
+import 'package:namkeen_tv/services/cast_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'bloc/blocs.dart';
 import 'utils/utils.dart';
 import 'config/app_config.dart';
 
-void main() {
+void main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize media_kit for video/audio playback
   MediaKit.ensureInitialized();
+
+  // Initialize Cast service on web
+  if (kIsWeb) {
+    await CastService.instance.initialize();
+  }
 
   // Print runtime configuration for debugging
   AppConfig.printConfig();
