@@ -93,12 +93,21 @@ const adminAuth = async (req, res, next) => {
 
 // Rate limiting middleware for auth routes
 const authRateLimit = {
-  windowMs: process.env.NODE_ENV === 'test' ? 1000 : 15 * 60 * 1000, // 1 second in test, 15 minutes in production
-  max: process.env.NODE_ENV === 'production' ? 5 : 100, // 5 requests in production, 100 in development
-  message: 'Too many authentication attempts, please try again later.',
+  windowMs: process.env.NODE_ENV === 'production' 
+    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS || 900000) 
+    : parseInt(process.env.DEV_RATE_LIMIT_WINDOW_MS || 1000),
+  max: process.env.NODE_ENV === 'production' 
+    ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || 100)
+    : parseInt(process.env.DEV_RATE_LIMIT_MAX_REQUESTS || 50),
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many authentication attempts',
+      message: process.env.RATE_LIMIT_MESSAGE || 'Please try again later.'
+    });
+  },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => process.env.NODE_ENV === 'test', // Skip rate limiting entirely in test environment
+  skip: () => process.env.NODE_ENV === 'test' || !process.env.RATE_LIMIT_ENABLED, // Skip if disabled or in test
 };
 
 module.exports = {

@@ -46,14 +46,11 @@ router.post('/register', validate('register'), async (req, res) => {
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user with Prisma
+    // Create new user with Prisma (password will be hashed by Prisma middleware)
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
-        password: hashedPassword,
+        password: password, // Prisma middleware will hash this
         username: username.toLowerCase(),
         profilename: profilename || username,
         isactive: true
@@ -96,12 +93,16 @@ router.post('/login', validate('login'), async (req, res) => {
   try {
     const { email, username, password } = req.body;
 
+    console.log('Login attempt:', { email, username, hasPassword: !!password });
+
     // Find user by email or username
     let user;
     if (email) {
       user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+      console.log('User found by email:', !!user);
     } else if (username) {
       user = await prisma.user.findUnique({ where: { username: username.toLowerCase() } });
+      console.log('User found by username:', !!user);
     } else {
       return res.status(400).json({
         error: 'Email or username is required'
@@ -110,7 +111,8 @@ router.post('/login', validate('login'), async (req, res) => {
 
     if (!user) {
       return res.status(401).json({
-        error: 'Invalid credentials'
+        error: 'Invalid credentials',
+        details: process.env.NODE_ENV === 'development' ? 'User not found' : undefined
       });
     }
 
@@ -302,11 +304,10 @@ router.post('/change-password', auth, async (req, res) => {
       });
     }
 
-    // Hash new password and update
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Update password (Prisma middleware will hash it)
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { password: hashedPassword }
+      data: { password: newPassword }
     });
 
     res.json({

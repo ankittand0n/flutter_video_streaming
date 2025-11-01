@@ -6,7 +6,9 @@ const router = express.Router();
 
 // Helper function to add full URLs to image paths
 const addImageUrls = (req, item) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  // Use X-Forwarded-Proto header if available (for Cloud Run/proxy), otherwise use req.protocol
+  const protocol = req.get('x-forwarded-proto') || req.protocol;
+  const baseUrl = `${protocol}://${req.get('host')}`;
   if (item.poster_path && !item.poster_path.startsWith('http')) {
     item.poster_path = `${baseUrl}${item.poster_path}`;
   }

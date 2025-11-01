@@ -59,18 +59,6 @@ if (config.rateLimit.enabled) {
 app.use(express.json({ limit: config.api.requestLimit }));
 app.use(express.urlencoded({ extended: true, limit: config.api.requestLimit }));
 
-// Static file serving
-app.use('/images', express.static(path.join(__dirname, '../public/images')));
-
-// Serve admin GUI static files
-const adminDistPath = path.join(__dirname, '../public/admin');
-app.use('/admin', express.static(adminDistPath));
-
-// Serve admin GUI on /admin route (SPA fallback)
-app.get('/admin/*', (req, res) => {
-  res.sendFile(path.join(adminDistPath, 'index.html'));
-});
-
 // Compression middleware
 if (config.security.compressionEnabled) {
   app.use(compression());
@@ -105,6 +93,11 @@ apiRouter.get('/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+// Apply rate limiter to apiRouter if enabled (BEFORE routes)
+if (limiter) {
+  apiRouter.use(limiter);
+}
+
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/user', userRoutes);
 apiRouter.use('/tmdb', tmdbRoutes);
@@ -115,20 +108,24 @@ apiRouter.use('/tv', tvSeriesRoutes);
 apiRouter.use('/seasons', seasonsRoutes);
 apiRouter.use('/genres', genresRoutes);
 
-// Apply rate limiter to apiRouter if enabled
-if (limiter) {
-  apiRouter.use(limiter);
-}
-
 // Mount all API routes at /api prefix
 app.use('/api', apiRouter);
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ 
-    error: 'Route not found',
-    path: req.originalUrl 
-  });
+// Serve admin GUI at root (after API routes)
+const adminDistPath = path.join(__dirname, '../public/admin');
+app.use(express.static(adminDistPath));
+
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  // If it's an API request that wasn't caught, return 404 JSON
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ 
+      error: 'Route not found',
+      path: req.originalUrl 
+    });
+  }
+  // Otherwise serve admin SPA
+  res.sendFile(path.join(adminDistPath, 'index.html'));
 });
 
 // Global error handler
@@ -148,7 +145,7 @@ const startServer = () => {
       console.log(`📱 Environment: ${config.server.env}`);
       console.log(`🔗 Health check: http://${config.server.host}:${config.server.port}/api/health`);
       console.log(`🌐 API Base URL: http://${config.server.host}:${config.server.port}/api`);
-      console.log(`🖥️  Admin GUI: http://${config.server.host}:${config.server.port}/admin`);
+      console.log(`🖥️  Admin GUI: http://${config.server.host}:${config.server.port}/`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

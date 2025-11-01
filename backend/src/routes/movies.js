@@ -7,7 +7,9 @@ const cache = require('../utils/simpleCache');
 
 // Helper function to add full URLs to image paths
 const addImageUrls = (req, item) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  // Use X-Forwarded-Proto header if available (for Cloud Run/proxy), otherwise use req.protocol
+  const protocol = req.get('x-forwarded-proto') || req.protocol;
+  const baseUrl = `${protocol}://${req.get('host')}`;
   if (item.poster_path && !item.poster_path.startsWith('http')) {
     item.poster_path = `${baseUrl}${item.poster_path}`;
   }
@@ -71,18 +73,11 @@ router.get('/', async (req, res) => {
     if (req.query.genre) where.genre_ids = { contains: req.query.genre };
     if (req.query.search) where.title = { contains: req.query.search };
 
-    const cacheKey = `movies:list:${page}:${limit}:${JSON.stringify(where)}`;
-    const cached = cache.get(cacheKey);
-    let data, total;
-    if (cached) {
-      ({ data, total } = cached);
-    } else {
-      [data, total] = await Promise.all([
-        prisma.movie.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
-        prisma.movie.count({ where })
-      ]);
-      cache.set(cacheKey, { data, total }, 1000 * 60 * 5); // 5 minutes
-    }
+    // Cache disabled - always fetch fresh data
+    const [data, total] = await Promise.all([
+      prisma.movie.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
+      prisma.movie.count({ where })
+    ]);
 
     // Add full URLs to image paths
     const transformedData = data.map(item => addImageUrls(req, item));
