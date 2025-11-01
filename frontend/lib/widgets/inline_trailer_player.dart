@@ -42,15 +42,9 @@ class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
         ),
       );
 
-      // Open media with HTTP headers
+      // Open media (without unsafe headers for web compatibility)
       await _player.open(
-        Media(
-          widget.trailerUrl,
-          httpHeaders: {
-            'User-Agent': 'NamkeenTV/1.0.0',
-            'Referer': 'https://namkeentv.com',
-          },
-        ),
+        Media(widget.trailerUrl),
         play: true,
       );
 

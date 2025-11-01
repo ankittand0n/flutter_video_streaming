@@ -131,15 +131,9 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
         ),
       );
 
-      // Open media with HTTP headers
+      // Open media (without unsafe headers for web compatibility)
       await _player.open(
-        Media(
-          videoUrl,
-          httpHeaders: {
-            'User-Agent': 'NamkeenTV/1.0.0',
-            'Referer': 'https://namkeentv.com',
-          },
-        ),
+        Media(videoUrl),
         play: widget.autoPlay,
       );
 
@@ -552,7 +546,8 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     return Center(
       child: Video(
         controller: _videoController,
-        controls: (state) => _buildCustomControls(state),
+        // Use Material controls which have proper fullscreen support on web
+        controls: AdaptiveVideoControls,
       ),
     );
   }
