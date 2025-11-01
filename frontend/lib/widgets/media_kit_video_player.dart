@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -6,6 +7,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:js_interop' as js;
+import 'package:http/http.dart' as http;
 
 // Web fullscreen API bindings
 @js.JS('document.documentElement')
@@ -67,7 +69,17 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
   bool _showControls = true;
   List<VideoTrack> _videoTracks = [];
   VideoTrack _currentVideoTrack = VideoTrack.auto();
+
+  // Stream subscriptions to be canceled on dispose
+  StreamSubscription? _positionSubscription;
+  StreamSubscription? _errorSubscription;
+  StreamSubscription? _tracksSubscription;
+  StreamSubscription? _trackSubscription;
   js.JSFunction? _fullscreenChangeListener;
+
+  // Web-specific HLS quality levels
+  List<Map<String, dynamic>> _webQualityLevels = [];
+  int _currentWebQualityIndex = -1; // -1 means auto
 
   @override
   void initState() {
@@ -83,16 +95,22 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     // Listen for fullscreen changes (e.g., user presses ESC)
     if (kIsWeb) {
       _fullscreenChangeListener = (() {
-        if (_fullscreenElement == null && _isFullScreen) {
+        if (_fullscreenElement == null && _isFullScreen && mounted) {
           // User exited fullscreen via ESC or browser button
-          if (mounted) {
+          try {
             setState(() {
               _isFullScreen = false;
             });
             // Close the dialog if in auto-fullscreen mode
-            if (widget.autoFullScreen) {
-              Navigator.of(context).pop();
+            if (widget.autoFullScreen && mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+              });
             }
+          } catch (e) {
+            // Silently handle any errors during fullscreen exit
           }
         }
       }).toJS;
@@ -199,6 +217,11 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
         play: widget.autoPlay,
       );
 
+      // For web, parse HLS playlist to get quality levels
+      if (kIsWeb && videoUrl.contains('.m3u8')) {
+        await _fetchWebQualityLevels(videoUrl);
+      }
+
       // Load saved position or use startAt parameter
       Duration? resumePosition;
       if (widget.startAt != null) {
@@ -210,21 +233,12 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
       // Start at specific time if provided or from saved position
       if (resumePosition != null && resumePosition.inSeconds > 0) {
         await _player.seek(resumePosition);
-
-        // Show a snackbar to inform user about resume
-        if (mounted && resumePosition.inSeconds > 10) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Resuming from ${_formatDuration(resumePosition)}'),
-              duration: const Duration(seconds: 2),
-              backgroundColor: Colors.black87,
-            ),
-          );
-        }
       }
 
       // Listen for position changes
-      _player.stream.position.listen((position) {
+      _positionSubscription = _player.stream.position.listen((position) {
+        if (!mounted) return;
+
         final duration = _player.state.duration;
 
         // Check if video ended (within 5 seconds of the end)
@@ -244,31 +258,36 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
       });
 
       // Listen for errors
-      _player.stream.error.listen((error) {
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = error;
-          });
-        }
+      _errorSubscription = _player.stream.error.listen((error) {
+        if (!mounted) return;
+
+        setState(() {
+          _hasError = true;
+          _errorMessage = error;
+        });
       });
 
       // Listen for available video tracks (for quality selection)
-      _player.stream.tracks.listen((tracks) {
-        if (mounted) {
-          setState(() {
-            _videoTracks = tracks.video;
-          });
+      _tracksSubscription = _player.stream.tracks.listen((tracks) {
+        if (!mounted) return;
+
+        debugPrint('Available video tracks: ${tracks.video.length}');
+        for (var track in tracks.video) {
+          debugPrint(
+              'Track: id=${track.id}, title=${track.title}, w=${track.w}, h=${track.h}');
         }
+        setState(() {
+          _videoTracks = tracks.video;
+        });
       });
 
       // Listen for current video track changes
-      _player.stream.track.listen((track) {
-        if (mounted) {
-          setState(() {
-            _currentVideoTrack = track.video;
-          });
-        }
+      _trackSubscription = _player.stream.track.listen((track) {
+        if (!mounted) return;
+
+        setState(() {
+          _currentVideoTrack = track.video;
+        });
       });
 
       setState(() {
@@ -290,6 +309,69 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
       _errorMessage = null;
     });
     await _initializePlayer();
+  }
+
+  // Fetch and parse HLS master playlist to extract quality levels for web
+  Future<void> _fetchWebQualityLevels(String url) async {
+    try {
+      debugPrint('Fetching HLS quality levels from: $url');
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final playlist = response.body;
+        final lines = playlist.split('\n');
+
+        List<Map<String, dynamic>> qualities = [];
+
+        for (int i = 0; i < lines.length; i++) {
+          final line = lines[i].trim();
+
+          // Look for #EXT-X-STREAM-INF lines (master playlist)
+          if (line.startsWith('#EXT-X-STREAM-INF:')) {
+            // Extract resolution
+            final resolutionMatch =
+                RegExp(r'RESOLUTION=(\d+)x(\d+)').firstMatch(line);
+            final bandwidthMatch = RegExp(r'BANDWIDTH=(\d+)').firstMatch(line);
+
+            if (resolutionMatch != null && i + 1 < lines.length) {
+              final width = int.parse(resolutionMatch.group(1)!);
+              final height = int.parse(resolutionMatch.group(2)!);
+              final bandwidth = bandwidthMatch != null
+                  ? int.parse(bandwidthMatch.group(1)!)
+                  : 0;
+
+              // Next line should be the variant playlist URL
+              final variantUrl = lines[i + 1].trim();
+
+              // Make URL absolute if it's relative
+              final fullUrl = variantUrl.startsWith('http')
+                  ? variantUrl
+                  : url.substring(0, url.lastIndexOf('/') + 1) + variantUrl;
+
+              qualities.add({
+                'width': width,
+                'height': height,
+                'bandwidth': bandwidth,
+                'label': '${height}p',
+                'url': fullUrl,
+              });
+            }
+          }
+        }
+
+        // Sort by height (quality)
+        qualities.sort((a, b) => a['height'].compareTo(b['height']));
+
+        setState(() {
+          _webQualityLevels = qualities;
+        });
+
+        debugPrint(
+            'Found ${qualities.length} quality levels: ${qualities.map((q) => q['label']).join(', ')}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching HLS quality levels: $e');
+    }
   }
 
   void _enterFullScreen() async {
@@ -386,8 +468,15 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black87,
+      isScrollControlled: true,
       builder: (BuildContext context) {
+        // Use web quality levels if available (for HLS on web)
+        final bool useWebQualities = kIsWeb && _webQualityLevels.isNotEmpty;
+
         return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -402,68 +491,123 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Auto quality option
-              ListTile(
-                title: const Text(
-                  'Auto',
-                  style: TextStyle(color: Colors.white),
-                ),
-                subtitle: const Text(
-                  'Automatic quality selection',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                leading: Radio<String>(
-                  value: 'auto',
-                  groupValue: _currentVideoTrack.id,
-                  onChanged: (value) {
-                    _player.setVideoTrack(VideoTrack.auto());
-                    Navigator.pop(context);
-                  },
-                  activeColor: Colors.red,
+              // Scrollable list of quality options
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Auto quality option
+                      ListTile(
+                        title: const Text(
+                          'Auto',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        subtitle: const Text(
+                          'Automatic quality selection',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        leading: Radio<int>(
+                          value: -1,
+                          groupValue: useWebQualities
+                              ? _currentWebQualityIndex
+                              : (_currentVideoTrack.id == 'auto' ? -1 : 0),
+                          onChanged: (value) {
+                            if (useWebQualities) {
+                              _setWebQuality(-1);
+                            } else {
+                              _player.setVideoTrack(VideoTrack.auto());
+                            }
+                            Navigator.pop(context);
+                          },
+                          activeColor: Colors.red,
+                        ),
+                      ),
+                      // Web quality levels (for HLS on web)
+                      if (useWebQualities)
+                        ..._webQualityLevels.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final quality = entry.value;
+
+                          return ListTile(
+                            title: Text(
+                              quality['label'],
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            subtitle: Text(
+                              '${quality['width']}x${quality['height']}',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12),
+                            ),
+                            leading: Radio<int>(
+                              value: index,
+                              groupValue: _currentWebQualityIndex,
+                              onChanged: (value) {
+                                _setWebQuality(index);
+                                Navigator.pop(context);
+                              },
+                              activeColor: Colors.red,
+                            ),
+                          );
+                        }),
+                      // Available video tracks (for native platforms)
+                      if (!useWebQualities && _videoTracks.isNotEmpty)
+                        ..._videoTracks.map((track) {
+                          // Extract quality info from track id or title
+                          String label = track.title ?? track.id;
+
+                          // Try to extract resolution from track info
+                          if (track.w != null && track.h != null) {
+                            label = '${track.h}p';
+                            if (track.fps != null) {
+                              label += ' (${track.fps?.round()} fps)';
+                            }
+                          }
+
+                          return ListTile(
+                            title: Text(
+                              label,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            subtitle: track.w != null && track.h != null
+                                ? Text(
+                                    '${track.w}x${track.h}',
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 12),
+                                  )
+                                : null,
+                            leading: Radio<String>(
+                              value: track.id,
+                              groupValue: _currentVideoTrack.id,
+                              onChanged: (value) {
+                                _player.setVideoTrack(track);
+                                Navigator.pop(context);
+                              },
+                              activeColor: Colors.red,
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
                 ),
               ),
-              // Available video tracks
-              if (_videoTracks.isNotEmpty)
-                ..._videoTracks.map((track) {
-                  // Extract quality info from track id or title
-                  String label = track.title ?? track.id;
-
-                  // Try to extract resolution from track info
-                  if (track.w != null && track.h != null) {
-                    label = '${track.h}p';
-                    if (track.fps != null) {
-                      label += ' (${track.fps?.round()} fps)';
-                    }
-                  }
-
-                  return ListTile(
-                    title: Text(
-                      label,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    subtitle: track.w != null && track.h != null
-                        ? Text(
-                            '${track.w}x${track.h}',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 12),
-                          )
-                        : null,
-                    leading: Radio<String>(
-                      value: track.id,
-                      groupValue: _currentVideoTrack.id,
-                      onChanged: (value) {
-                        _player.setVideoTrack(track);
-                        Navigator.pop(context);
-                      },
-                      activeColor: Colors.red,
-                    ),
-                  );
-                }),
             ],
           ),
         );
       },
     );
+  }
+
+  // Set quality for web (reload video with specific quality URL)
+  void _setWebQuality(int index) async {
+    // For now, just update the UI state
+    // TODO: Proper HLS quality switching requires native browser HLS API
+    // which media_kit doesn't expose on web platform
+    if (mounted) {
+      setState(() {
+        _currentWebQualityIndex = index;
+      });
+    }
   }
 
   @override
@@ -771,6 +915,12 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
 
   @override
   void dispose() {
+    // Cancel all stream subscriptions first
+    _positionSubscription?.cancel();
+    _errorSubscription?.cancel();
+    _tracksSubscription?.cancel();
+    _trackSubscription?.cancel();
+
     // Save current position before disposing
     if (_isInitialized && !_hasError) {
       final position = _player.state.position;

@@ -103,9 +103,6 @@ class AuthService {
         },
       );
 
-      print('Registration response status: ${response.statusCode}');
-      print('Registration response body: ${response.body}');
-
       final data = json.decode(response.body);
 
       if (response.statusCode == 201) {

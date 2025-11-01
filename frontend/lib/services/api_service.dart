@@ -11,7 +11,6 @@ class ApiService {
     int limit = 20,
   }) async {
     try {
-      print('Making API request to: $baseUrl/movies?page=$page&limit=$limit');
       final response = await http.get(
         Uri.parse('$baseUrl/movies?page=$page&limit=$limit'),
         headers: {
@@ -19,8 +18,6 @@ class ApiService {
           'Accept': 'application/json',
         },
       );
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
