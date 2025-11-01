@@ -21,8 +21,11 @@ const genresRoutes = require('./routes/genres');
 
 const app = express();
 
-// Connect to Database
-connectDB();
+// Connect to Database (non-blocking - continues in background)
+connectDB().catch(err => {
+  console.error('❌ Failed to connect to database:', err);
+  // Don't exit immediately - let health checks fail gracefully
+});
 
 // Security middleware
 if (config.security.helmetEnabled) {
