@@ -68,7 +68,12 @@ backend/.env.production.local
 backend/database.sqlite
 backend/database.sqlite3
 backend/*.db
+*.sql
 
+#Content
+Content/*
+Content.backup/*
+content/*
 # Logs
 *.log
 logs/

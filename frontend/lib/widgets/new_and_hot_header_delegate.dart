@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
-import '../bloc/netflix_bloc.dart';
 import '../utils/utils.dart';
 import 'netflix_tab.dart';
-import 'profile_icon.dart';
 
 class NewAndHotHeaderDelegate extends SliverPersistentHeaderDelegate {
   NewAndHotHeaderDelegate({required this.tabController});

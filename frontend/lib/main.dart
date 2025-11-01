@@ -13,8 +13,13 @@ import 'package:go_router/go_router.dart';
 
 import 'bloc/blocs.dart';
 import 'utils/utils.dart';
+import 'config/app_config.dart';
 
-void main() => runApp(NamkeenTvApp());
+void main() {
+  // Print runtime configuration for debugging
+  AppConfig.printConfig();
+  runApp(NamkeenTvApp());
+}
 
 class NamkeenTvApp extends StatelessWidget {
   NamkeenTvApp({super.key});

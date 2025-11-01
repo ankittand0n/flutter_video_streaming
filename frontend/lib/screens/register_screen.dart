@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -421,8 +421,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             _agreedToTerms = value ?? false;
                           });
                         },
-                        fillColor: MaterialStateProperty.resolveWith((states) {
-                          if (states.contains(MaterialState.selected)) {
+                        fillColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected)) {
                             return Colors.red;
                           }
                           return Colors.grey[800];

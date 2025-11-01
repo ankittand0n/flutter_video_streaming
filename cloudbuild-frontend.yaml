@@ -4,9 +4,9 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
+      - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
       - '-t'
-      - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:latest'
+      - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:latest'
       - '-f'
       - 'frontend/Dockerfile'
       - 'frontend'
@@ -16,39 +16,31 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
+      - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
     id: 'push-frontend-sha'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:latest'
+      - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:latest'
     id: 'push-frontend-latest'
 
-  # Deploy to Cloud Run
+  # Deploy to Cloud Run (environment variables managed in Cloud Run Console)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
       - 'frontend'
-      - '--image=asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
-      - '--region=asia-south2'
+      - '--image=asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
+      - '--region=asia-southeast1'
       - '--platform=managed'
-      - '--allow-unauthenticated'
-      - '--port=8080'
-      - '--min-instances=0'
-      - '--max-instances=10'
-      - '--memory=256Mi'
-      - '--cpu=1'
-      - '--timeout=60'
-      - '--set-env-vars=API_BASE_URL=https://backend-1040805906877.asia-south2.run.app,STORAGE_BASE_URL=https://storage.googleapis.com/namkeen-tv'
     id: 'deploy-frontend'
 
 # Store images in Artifact Registry
 images:
-  - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
-  - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:latest'
+  - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:${SHORT_SHA}'
+  - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/frontend:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();

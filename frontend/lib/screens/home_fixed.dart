@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // Build shimmer effect for loading states
-    final _shimmer = Shimmer.fromColors(
+    final shimmer = Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
       child: ListView.builder(
@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
 
@@ -175,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
                 } else if (isMoviePage) {
@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
 
@@ -239,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
                 } else {
@@ -270,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
 
@@ -300,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
 
@@ -330,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
 
@@ -360,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       }
-                      return _shimmer;
+                      return shimmer;
                     }),
                   ));
                 }

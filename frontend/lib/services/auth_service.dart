@@ -83,7 +83,7 @@ class AuthService {
         'username': username,
         'email': isEmail
             ? identifier
-            : '${identifier}@phone.temp', // Temporary email for phone users
+            : '$identifier@phone.temp', // Temporary email for phone users
         'password': password,
         'profilename': name,
       };

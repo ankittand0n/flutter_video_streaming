@@ -9,11 +9,11 @@ class InlineTrailerPlayer extends StatefulWidget {
   final String title;
 
   const InlineTrailerPlayer({
-    Key? key,
+    super.key,
     required this.trailerUrl,
     this.fullVideoUrl,
     required this.title,
-  }) : super(key: key);
+  });
 
   @override
   State<InlineTrailerPlayer> createState() => _InlineTrailerPlayerState();

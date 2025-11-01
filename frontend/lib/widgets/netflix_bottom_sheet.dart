@@ -128,7 +128,7 @@ class NetflixBottomSheet extends StatelessWidget {
                                         : Row(
                                             children: [
                                               Text(
-                                                '${movieDetails?.year ?? '2022'}',
+                                                movieDetails?.year ?? '2022',
                                                 style: const TextStyle(
                                                     color: Colors.grey,
                                                     fontSize: 14.0),

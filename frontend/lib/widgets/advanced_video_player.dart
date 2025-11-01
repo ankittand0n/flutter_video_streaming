@@ -22,7 +22,7 @@ class AdvancedVideoPlayer extends StatefulWidget {
   final Function(Duration)? onPositionChanged;
 
   const AdvancedVideoPlayer({
-    Key? key,
+    super.key,
     required this.videoUrl,
     this.trailerUrl,
     this.isTrailer = false,
@@ -37,7 +37,7 @@ class AdvancedVideoPlayer extends StatefulWidget {
     this.startAt,
     this.onVideoEnded,
     this.onPositionChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<AdvancedVideoPlayer> createState() => _AdvancedVideoPlayerState();
@@ -127,7 +127,7 @@ class _AdvancedVideoPlayerState extends State<AdvancedVideoPlayer> {
     if (hours > 0) {
       return '$hours:${twoDigits(minutes)}:${twoDigits(seconds)}';
     }
-    return '${minutes}:${twoDigits(seconds)}';
+    return '$minutes:${twoDigits(seconds)}';
   }
 
   Future<void> _initializePlayer() async {

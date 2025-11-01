@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class TestScreen extends StatelessWidget {
-  const TestScreen({Key? key}) : super(key: key);
+  const TestScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Colors.black,
-      body: const Center(
+      body: Center(
         child: Text(
           'TEST SCREEN - IF YOU SEE THIS, FLUTTER IS WORKING!',
           style: TextStyle(

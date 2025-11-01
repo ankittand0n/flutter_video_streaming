@@ -43,7 +43,7 @@ class RandomHighlightMovie extends StatelessWidget {
             child: Column(
               children: [
                 // Random title placeholder since we don't have specific movie data
-                Container(
+                SizedBox(
                   height: 80,
                   child: const Center(
                     child: Text(

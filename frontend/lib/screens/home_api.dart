@@ -6,7 +6,7 @@ import 'package:namkeen_tv/screens/movie_details_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HomeApiScreen extends StatefulWidget {
-  const HomeApiScreen({Key? key}) : super(key: key);
+  const HomeApiScreen({super.key});
 
   @override
   State<HomeApiScreen> createState() => _HomeApiScreenState();
@@ -163,7 +163,7 @@ class _HomeApiScreenState extends State<HomeApiScreen> {
 
   Widget _buildFeaturedMovie(Movie movie) {
     return SliverToBoxAdapter(
-      child: Container(
+      child: SizedBox(
         height: 400,
         child: Stack(
           fit: StackFit.expand,

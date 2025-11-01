@@ -113,7 +113,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
             child: Row(
               children: [
                 Text(
-                  '${movie.year.isNotEmpty ? movie.year : 'N/A'}',
+                  movie.year.isNotEmpty ? movie.year : 'N/A',
                   style: const TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(

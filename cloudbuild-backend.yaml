@@ -22,10 +22,10 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/backend:latest'
+      - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/backend:latest'
     id: 'push-backend-latest'
 
-  # Deploy to Cloud Run
+  # Deploy to Cloud Run (environment variables managed in Cloud Run Console)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -35,23 +35,12 @@ steps:
       - '--image=asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/backend:${SHORT_SHA}'
       - '--region=asia-southeast1'
       - '--platform=managed'
-      - '--allow-unauthenticated'
-      - '--port=8080'
-      - '--min-instances=0'
-      - '--max-instances=10'
-      - '--memory=512Mi'
-      - '--cpu=1'
-      - '--timeout=300'
-      - '--cpu-boost'
-      - '--startup-cpu-boost'
-      - '--set-env-vars=NODE_ENV=production,PORT=8080'
-      - '--set-secrets=DATABASE_URL=DATABASE_URL:latest,DIRECT_URL=DIRECT_URL:latest,JWT_SECRET=JWT_SECRET:latest'
     id: 'deploy-backend'
 
 # Store images in Artifact Registry
 images:
-  - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/backend:${SHORT_SHA}'
-  - 'asia-south2-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/backend:latest'
+  - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/backend:${SHORT_SHA}'
+  - 'asia-southeast1-docker.pkg.dev/${PROJECT_ID}/namkeen-tv/backend:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
