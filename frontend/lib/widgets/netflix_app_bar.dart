@@ -74,7 +74,10 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                        onPressed: () {}, icon: const Icon(LucideIcons.search)),
+                        onPressed: () {
+                          context.push('/home/search');
+                        },
+                        icon: const Icon(LucideIcons.search)),
                     // Profile navigation
                     IconButton(
                       onPressed: () {

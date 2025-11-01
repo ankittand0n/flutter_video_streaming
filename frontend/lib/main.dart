@@ -7,6 +7,7 @@ import 'package:namkeen_tv/screens/netflix_scaffold.dart';
 import 'package:namkeen_tv/screens/login_screen.dart';
 import 'package:namkeen_tv/screens/register_screen.dart';
 import 'package:namkeen_tv/screens/profile_screen.dart';
+import 'package:namkeen_tv/screens/search_screen.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
 import 'package:namkeen_tv/services/cast_service.dart';
 import 'package:go_router/go_router.dart';
@@ -145,6 +146,13 @@ class NamkeenTvApp extends StatelessWidget {
                   path: 'details',
                   builder: (BuildContext context, GoRouterState state) {
                     return MovieDetailsScreen(movie: state.extra as Movie);
+                  },
+                ),
+                GoRoute(
+                  name: 'Search',
+                  path: 'search',
+                  builder: (BuildContext context, GoRouterState state) {
+                    return const SearchScreen();
                   },
                 ),
               ]),
