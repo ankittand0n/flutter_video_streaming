@@ -114,20 +114,15 @@ apiRouter.use('/genres', genresRoutes);
 // Mount all API routes at /api prefix
 app.use('/api', apiRouter);
 
-// Serve admin GUI
+// Serve admin GUI static files
 const adminDistPath = path.join(__dirname, '../public/admin');
-const publicPath = path.join(__dirname, '../public');
-app.use('/admin', express.static(adminDistPath));
-app.use(express.static(publicPath));
+app.use(express.static(adminDistPath));
 
-// SPA fallback - serve index.html for all non-API routes
-app.get('*', (req, res) => {
-  // If it's an API request that wasn't caught, return 404 JSON
+// SPA fallback - serve index.html ONLY for non-API GET requests
+app.get('*', (req, res, next) => {
+  // If it's an API request, let it fall through to error handler
   if (req.path.startsWith('/api')) {
-    return res.status(404).json({ 
-      error: 'Route not found',
-      path: req.originalUrl 
-    });
+    return next();
   }
   // Otherwise serve admin SPA
   res.sendFile(path.join(adminDistPath, 'index.html'));
