@@ -114,9 +114,11 @@ apiRouter.use('/genres', genresRoutes);
 // Mount all API routes at /api prefix
 app.use('/api', apiRouter);
 
-// Serve admin GUI at root (after API routes)
+// Serve admin GUI
 const adminDistPath = path.join(__dirname, '../public/admin');
-app.use(express.static(adminDistPath));
+const publicPath = path.join(__dirname, '../public');
+app.use('/admin', express.static(adminDistPath));
+app.use(express.static(publicPath));
 
 // SPA fallback - serve index.html for all non-API routes
 app.get('*', (req, res) => {
