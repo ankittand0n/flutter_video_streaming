@@ -10,12 +10,19 @@ import 'package:namkeen_tv/screens/profile_screen.dart';
 import 'package:namkeen_tv/widgets/video_player_widget.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:media_kit/media_kit.dart';
 
 import 'bloc/blocs.dart';
 import 'utils/utils.dart';
 import 'config/app_config.dart';
 
 void main() {
+  // Ensure Flutter binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize media_kit for video/audio playback
+  MediaKit.ensureInitialized();
+
   // Print runtime configuration for debugging
   AppConfig.printConfig();
   runApp(NamkeenTvApp());

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:namkeen_tv/widgets/advanced_video_player.dart';
+import 'package:namkeen_tv/widgets/media_kit_video_player.dart';
 
 class VideoPlayerWidget extends StatelessWidget {
   final String videoUrl;
@@ -19,7 +19,7 @@ class VideoPlayerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AdvancedVideoPlayer(
+    return MediaKitVideoPlayer(
       videoUrl: videoUrl,
       trailerUrl: trailerUrl,
       isTrailer: isTrailer,
@@ -27,46 +27,6 @@ class VideoPlayerWidget extends StatelessWidget {
       videoId: videoId,
       autoPlay: true,
       onVideoEnded: onClose,
-      // You can add subtitle and audio track data here when available
-      subtitles: _getDemoSubtitles(),
-      audioTracks: _getDemoAudioTracks(),
     );
-  }
-
-  List<SubtitleTrack>? _getDemoSubtitles() {
-    // In a real implementation, you would get this data from your backend
-    return [
-      SubtitleTrack(
-        language: 'English',
-        url: '$videoUrl.en.srt',
-        format: 'srt',
-      ),
-      SubtitleTrack(
-        language: 'Spanish',
-        url: '$videoUrl.es.srt',
-        format: 'srt',
-      ),
-      SubtitleTrack(
-        language: 'French',
-        url: '$videoUrl.fr.srt',
-        format: 'srt',
-      ),
-    ];
-  }
-
-  List<AudioTrack>? _getDemoAudioTracks() {
-    // In a real implementation, you would get this data from your backend
-    return [
-      AudioTrack(
-        language: 'English',
-        quality: '320kbps',
-        url: '$videoUrl.en.aac',
-      ),
-      AudioTrack(
-        language: 'Spanish',
-        quality: '320kbps',
-        url: '$videoUrl.es.aac',
-      ),
-    ];
   }
 }
