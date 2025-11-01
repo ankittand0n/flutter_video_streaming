@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:chewie/chewie.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:go_router/go_router.dart';
 
 class InlineTrailerPlayer extends StatefulWidget {
@@ -20,8 +20,8 @@ class InlineTrailerPlayer extends StatefulWidget {
 }
 
 class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
-  late VideoPlayerController _videoPlayerController;
-  ChewieController? _chewieController;
+  late final Player _player;
+  late final VideoController _videoController;
   bool _isInitialized = false;
   bool _hasError = false;
   bool _isMuted = true;
@@ -34,26 +34,29 @@ class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
 
   Future<void> _initializePlayer() async {
     try {
-      _videoPlayerController = VideoPlayerController.networkUrl(
-        Uri.parse(widget.trailerUrl),
-        httpHeaders: {
-          'User-Agent': 'NamkeenTV/1.0.0',
-          'Referer': 'https://namkeentv.com',
-        },
+      _player = Player();
+      _videoController = VideoController(
+        _player,
+        configuration: const VideoControllerConfiguration(
+          enableHardwareAcceleration: true,
+        ),
       );
 
-      await _videoPlayerController.initialize();
-      await _videoPlayerController.setVolume(0.0); // Start muted
-      await _videoPlayerController.setLooping(true); // Loop the trailer
-
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController,
-        autoPlay: true,
-        looping: true,
-        showControls: false, // We'll add custom controls
-        allowFullScreen: false,
-        aspectRatio: _videoPlayerController.value.aspectRatio,
+      // Open media with HTTP headers
+      await _player.open(
+        Media(
+          widget.trailerUrl,
+          httpHeaders: {
+            'User-Agent': 'NamkeenTV/1.0.0',
+            'Referer': 'https://namkeentv.com',
+          },
+        ),
+        play: true,
       );
+
+      // Start muted and loop
+      await _player.setVolume(0.0);
+      await _player.setPlaylistMode(PlaylistMode.single); // Loop the trailer
 
       if (mounted) {
         setState(() {
@@ -71,8 +74,7 @@ class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
 
   @override
   void dispose() {
-    _chewieController?.dispose();
-    _videoPlayerController.dispose();
+    _player.dispose();
     super.dispose();
   }
 
@@ -80,14 +82,14 @@ class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
     if (!mounted || !_isInitialized) return;
     setState(() {
       _isMuted = !_isMuted;
-      _videoPlayerController.setVolume(_isMuted ? 0.0 : 1.0);
+      _player.setVolume(_isMuted ? 0.0 : 100.0);
     });
   }
 
   void _openFullscreen() {
     if (!mounted) return;
     // Pause the inline player before opening fullscreen
-    _videoPlayerController.pause();
+    _player.pause();
     context.push('/video-player', extra: {
       'videoUrl': widget.fullVideoUrl ?? widget.trailerUrl,
       'trailerUrl': widget.trailerUrl,
@@ -95,7 +97,7 @@ class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
     }).then((_) {
       // Resume playing when returning from fullscreen
       if (mounted && _isInitialized) {
-        _videoPlayerController.play();
+        _player.play();
       }
     });
   }
@@ -132,10 +134,11 @@ class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
     return Stack(
       children: [
         AspectRatio(
-          aspectRatio: _videoPlayerController.value.aspectRatio,
-          child: _chewieController != null
-              ? Chewie(controller: _chewieController!)
-              : Container(color: Colors.black),
+          aspectRatio: 16 / 9, // Standard video aspect ratio
+          child: Video(
+            controller: _videoController,
+            controls: NoVideoControls,
+          ),
         ),
         // Custom controls overlay
         Positioned(
