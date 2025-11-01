@@ -32,8 +32,11 @@
   <title>Namkeen TV</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Load runtime configuration (injected by Docker at startup) -->
-  <script src="config.js"></script>
+  <!-- Load runtime configuration (optional, injected by Docker at startup) -->
+  <script>
+    // Initialize ENV object - config.js can override these if it exists
+    window.ENV = window.ENV || {};
+  </script>
 
   <!-- HLS.js for HLS video playback support on web -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -44,10 +47,12 @@
 <body>
   <script>
     window.addEventListener('load', function(ev) {
-      // Download main.dart.js using the new API
-      _flutter.loader.load({
-        serviceWorkerSettings: {
-          serviceWorkerVersion: "{{flutter_service_worker_version}}",
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
         }
       });
     });

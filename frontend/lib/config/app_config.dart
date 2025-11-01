@@ -19,8 +19,8 @@ class AppConfig {
     } catch (e) {
       print('Failed to read runtime config: $e');
     }
-    // Fallback to default
-    return 'https://admin.namkeentv.com/api';
+    // Fallback to default (Cloud Run direct URL for now, will use admin.namkeentv.com after DNS)
+    return 'https://namkeen-tv-backend-1040805906877.asia-southeast1.run.app/api';
   }
 
   static String get storageBaseUrl {

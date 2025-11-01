@@ -1,9 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:js_interop' as js;
+
+// Web fullscreen API bindings
+@js.JS('document.documentElement')
+external js.JSObject get _documentElement;
+
+@js.JS('document.fullscreenElement')
+external js.JSObject? get _fullscreenElement;
+
+@js.JS('document')
+external js.JSObject get _document;
+
+extension on js.JSObject {
+  external void requestFullscreen();
+  external void addEventListener(String type, js.JSFunction listener);
+  external void removeEventListener(String type, js.JSFunction listener);
+}
+
+@js.JS('document.exitFullscreen')
+external void _exitFullscreen();
 
 class MediaKitVideoPlayer extends StatefulWidget {
   final String videoUrl;
@@ -41,19 +62,60 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
   bool _isInitialized = false;
   bool _hasError = false;
   String? _errorMessage;
-  bool _isFullScreen = false;
+  late bool
+      _isFullScreen; // Will be initialized in initState based on autoFullScreen
   bool _showControls = true;
   List<VideoTrack> _videoTracks = [];
   VideoTrack _currentVideoTrack = VideoTrack.auto();
+  js.JSFunction? _fullscreenChangeListener;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize fullscreen state immediately if autoFullScreen is enabled
+    // This prevents the AppBar from showing on first build
+    _isFullScreen = widget.autoFullScreen;
+
     _initializePlayer();
     WakelockPlus.enable(); // Keep screen awake during video playback
 
+    // Listen for fullscreen changes (e.g., user presses ESC)
+    if (kIsWeb) {
+      _fullscreenChangeListener = (() {
+        if (_fullscreenElement == null && _isFullScreen) {
+          // User exited fullscreen via ESC or browser button
+          if (mounted) {
+            setState(() {
+              _isFullScreen = false;
+            });
+            // Close the dialog if in auto-fullscreen mode
+            if (widget.autoFullScreen) {
+              Navigator.of(context).pop();
+            }
+          }
+        }
+      }).toJS;
+      _document.addEventListener(
+          'fullscreenchange', _fullscreenChangeListener!);
+    }
+
     // Auto enter fullscreen if enabled
-    if (widget.autoFullScreen) {
+    // Must be called synchronously from initState to preserve user gesture context
+    if (widget.autoFullScreen && kIsWeb) {
+      // Call immediately for web to preserve user gesture
+      try {
+        debugPrint('Requesting immediate fullscreen in initState...');
+        _documentElement.requestFullscreen();
+      } catch (e) {
+        debugPrint('Failed to request fullscreen in initState: $e');
+        // Fallback: try again in postFrameCallback
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _enterFullScreen();
+        });
+      }
+    } else if (widget.autoFullScreen) {
+      // For mobile, use postFrameCallback
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _enterFullScreen();
       });
@@ -230,33 +292,64 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     await _initializePlayer();
   }
 
-  void _enterFullScreen() {
+  void _enterFullScreen() async {
     if (!_isFullScreen) {
       setState(() {
         _isFullScreen = true;
         _showControls = true;
       });
 
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+      // Use native browser fullscreen API on web
+      if (kIsWeb) {
+        try {
+          // Request fullscreen on the document element (entire page, F11-style)
+          debugPrint('Requesting browser fullscreen...');
+          _documentElement.requestFullscreen();
+          debugPrint('Fullscreen requested successfully');
+        } catch (e) {
+          debugPrint('Failed to enter native fullscreen: $e');
+        }
+      } else {
+        // Mobile fullscreen
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
 
       _startHideControlsTimer();
     }
   }
 
-  void _exitFullScreen() {
+  void _exitFullScreen() async {
     if (_isFullScreen) {
       setState(() {
         _isFullScreen = false;
       });
 
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
+      // Exit native browser fullscreen on web
+      if (kIsWeb) {
+        try {
+          // Only exit if currently in fullscreen
+          if (_fullscreenElement != null) {
+            _exitFullscreen();
+          }
+        } catch (e) {
+          debugPrint('Failed to exit native fullscreen: $e');
+        }
+      } else {
+        // Mobile fullscreen
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+      }
+
+      // If we were auto-fullscreen (dialog mode), close the dialog when exiting fullscreen
+      if (widget.autoFullScreen && mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -421,7 +514,10 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
           child: Stack(
             children: [
               _buildVideoPlayer(),
-              // Fullscreen overlay controls
+              // Custom controls overlay (always show in normal mode, toggle in fullscreen)
+              if (!_isFullScreen || _showControls)
+                _buildCustomControlsOverlay(),
+              // Fullscreen top bar
               if (_isFullScreen && _showControls) _buildFullscreenControls(),
             ],
           ),
@@ -546,13 +642,13 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     return Center(
       child: Video(
         controller: _videoController,
-        // Use Material controls which have proper fullscreen support on web
-        controls: AdaptiveVideoControls,
+        // Use NoVideoControls since we have custom controls
+        controls: NoVideoControls,
       ),
     );
   }
 
-  Widget _buildCustomControls(VideoState state) {
+  Widget _buildCustomControlsOverlay() {
     return StreamBuilder<bool>(
       stream: _player.stream.playing,
       builder: (context, playingSnapshot) {
@@ -686,6 +782,12 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
           position.inSeconds > 0) {
         _savePosition(position);
       }
+    }
+
+    // Remove fullscreen change listener on web
+    if (kIsWeb && _fullscreenChangeListener != null) {
+      _document.removeEventListener(
+          'fullscreenchange', _fullscreenChangeListener!);
     }
 
     _player.dispose();

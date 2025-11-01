@@ -2,12 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/cubit/movie_details_tab_cubit.dart';
 import 'package:namkeen_tv/widgets/episode_box.dart';
 import 'package:namkeen_tv/widgets/netflix_dropdown.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
 import 'package:namkeen_tv/widgets/inline_trailer_player.dart';
+import 'package:namkeen_tv/widgets/media_kit_video_player.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../bloc/netflix_bloc.dart';
@@ -164,12 +164,25 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                     foregroundColor: Colors.black),
                 onPressed: () {
                   if (movie.videoUrl != null && movie.videoUrl!.isNotEmpty) {
-                    context.push('/video-player', extra: {
-                      'videoUrl': movie.videoUrl!,
-                      'trailerUrl': movie.trailerUrl,
-                      'isTrailer': false,
-                      'videoId': movie.id.toString(), // Add movie ID for resume
-                    });
+                    Navigator.of(context, rootNavigator: true).push(
+                      PageRouteBuilder(
+                        opaque: true,
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            MediaKitVideoPlayer(
+                          videoUrl: movie.videoUrl!,
+                          trailerUrl: movie.trailerUrl,
+                          isTrailer: false,
+                          title: movie.name,
+                          videoId: movie.id.toString(),
+                          autoPlay: true,
+                          autoFullScreen: true,
+                          onVideoEnded: () =>
+                              Navigator.of(context, rootNavigator: true).pop(),
+                        ),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
+                    );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
+import 'package:namkeen_tv/widgets/media_kit_video_player.dart';
 
 class MovieTrailer extends StatelessWidget {
   const MovieTrailer(
@@ -16,11 +16,24 @@ class MovieTrailer extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (movie.trailerUrl != null && movie.trailerUrl!.isNotEmpty) {
-          context.push('/video-player', extra: {
-            'videoUrl': movie.videoUrl ?? '',
-            'trailerUrl': movie.trailerUrl,
-            'isTrailer': true,
-          });
+          Navigator.of(context, rootNavigator: true).push(
+            PageRouteBuilder(
+              opaque: true,
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  MediaKitVideoPlayer(
+                videoUrl: movie.videoUrl ?? '',
+                trailerUrl: movie.trailerUrl,
+                isTrailer: true,
+                title: '${movie.title} - Trailer',
+                autoPlay: true,
+                autoFullScreen: true,
+                onVideoEnded: () =>
+                    Navigator.of(context, rootNavigator: true).pop(),
+              ),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
         }
       },
       child: Column(

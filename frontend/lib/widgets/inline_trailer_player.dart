@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:go_router/go_router.dart';
+import 'package:namkeen_tv/widgets/media_kit_video_player.dart';
 
 class InlineTrailerPlayer extends StatefulWidget {
   final String trailerUrl;
@@ -84,11 +84,26 @@ class _InlineTrailerPlayerState extends State<InlineTrailerPlayer> {
     if (!mounted) return;
     // Pause the inline player before opening fullscreen
     _player.pause();
-    context.push('/video-player', extra: {
-      'videoUrl': widget.fullVideoUrl ?? widget.trailerUrl,
-      'trailerUrl': widget.trailerUrl,
-      'isTrailer': true,
-    }).then((_) {
+
+    Navigator.of(context, rootNavigator: true)
+        .push(
+      PageRouteBuilder(
+        opaque: true,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            MediaKitVideoPlayer(
+          videoUrl: widget.fullVideoUrl ?? widget.trailerUrl,
+          trailerUrl: widget.trailerUrl,
+          isTrailer: true,
+          title: 'Trailer',
+          autoPlay: true,
+          autoFullScreen: true,
+          onVideoEnded: () => Navigator.of(context, rootNavigator: true).pop(),
+        ),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    )
+        .then((_) {
       // Resume playing when returning from fullscreen
       if (mounted && _isInitialized) {
         _player.play();

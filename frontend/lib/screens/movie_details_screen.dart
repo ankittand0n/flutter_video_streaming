@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/model/movie.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
+import 'package:namkeen_tv/widgets/media_kit_video_player.dart';
 import 'package:namkeen_tv/config/app_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -220,23 +220,53 @@ class MovieDetailsScreen extends StatelessWidget {
 
   void _playMovie(BuildContext context) {
     if (movie.hasVideo) {
-      context.push('/video-player', extra: {
-        'videoUrl': movie.videoUrl!,
-        'trailerUrl': movie.trailerUrl,
-        'isTrailer': false,
-        'videoId': movie.id.toString(), // Add movie ID for resume
-      });
+      // Use root Navigator to bypass ShellRoute scaffold with navigation bar
+      Navigator.of(context, rootNavigator: true).push(
+        PageRouteBuilder(
+          opaque:
+              true, // Completely covers underlying page (no navigation bar visible)
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              MediaKitVideoPlayer(
+            videoUrl: movie.videoUrl!,
+            trailerUrl: movie.trailerUrl,
+            isTrailer: false,
+            title: movie.title,
+            videoId: movie.id.toString(),
+            autoPlay: true,
+            autoFullScreen: true,
+            onVideoEnded: () =>
+                Navigator.of(context, rootNavigator: true).pop(),
+          ),
+          transitionDuration: Duration.zero, // No transition animation
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
     }
   }
 
   void _playTrailer(BuildContext context) {
     if (movie.hasTrailer) {
-      context.push('/video-player', extra: {
-        'videoUrl': movie.videoUrl ?? '',
-        'trailerUrl': movie.trailerUrl,
-        'isTrailer': true,
-        'videoId': 'trailer_${movie.id}', // Separate key for trailers
-      });
+      // Use root Navigator to bypass ShellRoute scaffold with navigation bar
+      Navigator.of(context, rootNavigator: true).push(
+        PageRouteBuilder(
+          opaque:
+              true, // Completely covers underlying page (no navigation bar visible)
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              MediaKitVideoPlayer(
+            videoUrl: movie.videoUrl ?? '',
+            trailerUrl: movie.trailerUrl,
+            isTrailer: true,
+            title: '${movie.title} - Trailer',
+            videoId: 'trailer_${movie.id}',
+            autoPlay: true,
+            autoFullScreen: true,
+            onVideoEnded: () =>
+                Navigator.of(context, rootNavigator: true).pop(),
+          ),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
     }
   }
 
