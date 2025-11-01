@@ -114,8 +114,11 @@ apiRouter.use('/genres', genresRoutes);
 // Mount all API routes at /api prefix
 app.use('/api', apiRouter);
 
-// Serve admin GUI static files
+// Serve admin GUI static files at /admin path to match asset references
 const adminDistPath = path.join(__dirname, '../public/admin');
+app.use('/admin', express.static(adminDistPath));
+
+// Also serve admin at root for direct access
 app.use(express.static(adminDistPath));
 
 // SPA fallback - serve index.html ONLY for non-API GET requests
