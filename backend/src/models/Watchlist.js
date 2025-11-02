@@ -6,12 +6,21 @@ class WatchlistModel {
   }
 
   async save() {
+    // Map camelCase to snake_case for Prisma
+    const data = {
+      userid: Number(this.userid),
+      contenttype: this.contenttype,
+      contentid: this.contentid,
+      title: this.title,
+      posterpath: this.posterPath || this.posterpath || null
+    };
+
     if (this.id) {
-      const updated = await prisma.watchlist.update({ where: { id: this.id }, data: { ...this } });
+      const updated = await prisma.watchlist.update({ where: { id: this.id }, data });
       Object.assign(this, updated);
       return this;
     }
-    const created = await prisma.watchlist.create({ data: { ...this } });
+    const created = await prisma.watchlist.create({ data });
     Object.assign(this, created);
     return this;
   }
