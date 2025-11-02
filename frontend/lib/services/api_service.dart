@@ -184,26 +184,46 @@ class ApiService {
     String token,
     String contentId,
     String contentType,
-    String title,
-  ) async {
+    String title, {
+    String? overview,
+    String? posterPath,
+    String? backdropPath,
+  }) async {
     try {
+      print('Adding to watchlist - contentId: $contentId, type: $contentType');
+
+      final requestBody = {
+        'contentid': contentId,
+        'contenttype': contentType,
+        'title': title,
+        if (overview != null && overview.isNotEmpty) 'overview': overview,
+        if (posterPath != null && posterPath.isNotEmpty)
+          'posterPath': posterPath,
+        if (backdropPath != null && backdropPath.isNotEmpty)
+          'backdropPath': backdropPath,
+      };
+
+      print('Request body: ${json.encode(requestBody)}');
+
       final response = await http.post(
         Uri.parse('$baseUrl/watchlist'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'contentid': contentId,
-          'contenttype': contentType,
-          'title': title,
-        }),
+        body: json.encode(requestBody),
       );
+
+      print('Watchlist response: ${response.statusCode} - ${response.body}');
 
       final data = json.decode(response.body);
       return {
-        'success': response.statusCode == 201,
-        'message': data['message'] ?? data['error'] ?? 'Unknown error',
+        'success': response.statusCode == 201 || response.statusCode == 200,
+        'message': data['message'] ??
+            data['error'] ??
+            (data['details'] != null
+                ? json.encode(data['details'])
+                : 'Unknown error'),
       };
     } catch (e) {
       print('Error adding to watchlist: $e');
@@ -264,26 +284,41 @@ class ApiService {
     String contentType,
     double rating, {
     String? review,
+    String? title,
   }) async {
     try {
+      print(
+          'Rating content - contentId: $contentId, type: $contentType, rating: $rating');
+
+      final requestBody = {
+        'contentid': contentId,
+        'contenttype': contentType,
+        'rating': rating,
+        if (review != null && review.isNotEmpty) 'review': review,
+        if (title != null && title.isNotEmpty) 'title': title,
+      };
+
+      print('Request body: ${json.encode(requestBody)}');
+
       final response = await http.post(
         Uri.parse('$baseUrl/rating'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'contentid': contentId,
-          'contenttype': contentType,
-          'rating': rating,
-          if (review != null) 'review': review,
-        }),
+        body: json.encode(requestBody),
       );
+
+      print('Rating response: ${response.statusCode} - ${response.body}');
 
       final data = json.decode(response.body);
       return {
-        'success': response.statusCode == 201,
-        'message': data['message'] ?? data['error'] ?? 'Unknown error',
+        'success': response.statusCode == 201 || response.statusCode == 200,
+        'message': data['message'] ??
+            data['error'] ??
+            (data['details'] != null
+                ? json.encode(data['details'])
+                : 'Unknown error'),
       };
     } catch (e) {
       print('Error rating content: $e');

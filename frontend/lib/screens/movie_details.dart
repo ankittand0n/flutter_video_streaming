@@ -38,7 +38,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         ..addListener(() {
           context.read<MovieDetailsTabCubit>().setTab(_tabController.index);
         });
-  
+
   bool _showTrailerPlayer = false;
   bool _isInWatchlist = false;
   double? _userRating;
@@ -67,7 +67,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         _userRating = null;
       });
     }
-  }  @override
+  }
+
+  @override
   Widget build(BuildContext context) {
     final configuration = context.watch<ConfigurationBloc>().state;
 
@@ -595,10 +597,10 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
 
   Future<void> _toggleWatchlist(Movie movie) async {
     setState(() => _isLoading = true);
-    
+
     final authService = AuthService();
     final token = await authService.getToken();
-    
+
     if (token == null) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -616,6 +618,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
             movie.id.toString(),
             movie.type,
             movie.name,
+            overview: movie.overview,
+            posterPath: movie.posterPath,
+            backdropPath: movie.backdropPath,
           );
 
     setState(() {
@@ -637,7 +642,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
 
   Future<void> _showRatingDialog(Movie movie) async {
     double rating = _userRating ?? 5.0;
-    
+
     final result = await showDialog<double>(
       context: context,
       builder: (context) => AlertDialog(
@@ -667,7 +672,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, rating),
@@ -704,6 +710,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
       movie.id.toString(),
       movie.type,
       rating,
+      title: movie.name,
     );
 
     setState(() {
@@ -728,7 +735,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
     final shareText = 'Check out ${movie.name} on Namkeen TV!\n$shareUrl';
 
     try {
-      final uri = Uri.parse('https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}');
+      final uri = Uri.parse(
+          'https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}');
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
@@ -746,7 +754,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Close', style: TextStyle(color: Colors.white)),
+                  child: const Text('Close',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
