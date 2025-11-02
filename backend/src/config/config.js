@@ -39,14 +39,12 @@ const config = {
   },
 
   cors: {
-    enabled: process.env.CORS_ENABLED === 'true',
-    origin: process.env.CORS_ORIGIN === '*' 
-      ? '*' 
-      : (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000').split(','),
+    enabled: process.env.CORS_ENABLED !== 'false', // Enable by default
+    origin: '*', // Allow all origins for mobile apps and any web clients
     methods: process.env.CORS_METHODS?.split(',') || ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     allowedHeaders: process.env.CORS_ALLOWED_HEADERS?.split(',') || ['Content-Type', 'Authorization'],
     exposedHeaders: process.env.CORS_EXPOSE_HEADERS?.split(',') || [],
-    credentials: process.env.CORS_CREDENTIALS === 'true',
+    credentials: false, // Must be false when origin is '*'
     maxAge: parseInt(process.env.CORS_MAX_AGE) || 86400
   },
 

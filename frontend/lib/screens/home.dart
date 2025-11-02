@@ -6,6 +6,9 @@ import 'package:namkeen_tv/widgets/movie_box.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:sliver_tools/sliver_tools.dart';
+import 'package:namkeen_tv/services/api_service.dart';
+import 'package:namkeen_tv/services/auth_service.dart';
+import 'package:namkeen_tv/model/movie.dart';
 
 import '../widgets/netflix_app_bar.dart';
 
@@ -29,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     });
 
+  List<dynamic> _myList = [];
+
   @override
   void initState() {
     context
@@ -48,7 +53,26 @@ class _HomeScreenState extends State<HomeScreen> {
         .add(FetchTrendingMovieListDaily());
 
     context.read<DiscoverMoviesBloc>().add(DiscoverMoviesEvent());
+    _loadMyList();
     super.initState();
+  }
+
+  Future<void> _loadMyList() async {
+    try {
+      final authService = AuthService();
+      final token = await authService.getToken();
+
+      if (token != null) {
+        final watchlist = await ApiService.getWatchlist(token);
+        if (mounted) {
+          setState(() {
+            _myList = watchlist;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading my list: $e');
+    }
   }
 
   @override
@@ -133,6 +157,46 @@ class _HomeScreenState extends State<HomeScreen> {
               (() {
                 final List<Widget> children = [];
                 children.add(const HighlightMovie());
+
+                // Add "My List" section if user has items
+                if (_myList.isNotEmpty) {
+                  children.add(Padding(
+                    padding: padding,
+                    child: Text(
+                      'My List',
+                      style: TextStyle(
+                          fontSize: titleFontSize, fontWeight: FontWeight.bold),
+                    ),
+                  ));
+
+                  children.add(SizedBox(
+                    height: rowHeight,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      itemCount: _myList.length,
+                      itemBuilder: (context, index) {
+                        final item = _myList[index];
+                        // Convert watchlist item to Movie object with minimal required fields
+                        final movie = Movie(
+                          id: int.tryParse(item['contentid'] ?? '0') ?? 0,
+                          title: item['title'] ?? '',
+                          overview: '',
+                          releaseDate: '',
+                          voteAverage: 0.0,
+                          posterPath: item['posterpath'] ?? '',
+                          backdropPath: '',
+                          genreIds: [],
+                          originalLanguage: '',
+                          createdAt: DateTime.now(),
+                          updatedAt: DateTime.now(),
+                          video: false,
+                        );
+                        return MovieBox(key: ValueKey(movie.id), movie: movie);
+                      },
+                    ),
+                  ));
+                }
 
                 if (isTvPage) {
                   children.add(Padding(
