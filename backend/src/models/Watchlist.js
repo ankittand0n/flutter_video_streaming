@@ -66,7 +66,12 @@ class WatchlistModel {
     if (query.priority) where.priority = query.priority;
     if (query.contenttype) where.contenttype = query.contenttype;
 
-    const items = await prisma.watchlist.findMany({ where, orderBy: { addedAt: 'desc' }, take: query.limit ? Number(query.limit) : undefined, skip: query.skip ? Number(query.skip) : undefined });
+    const items = await prisma.watchlist.findMany({ 
+      where, 
+      orderBy: { createdat: 'desc' }, 
+      take: query.limit ? Number(query.limit) : undefined, 
+      skip: query.skip ? Number(query.skip) : undefined 
+    });
     return items.map(i => new WatchlistModel(i));
   }
 
