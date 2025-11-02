@@ -8,15 +8,22 @@ class WatchlistModel {
   async save() {
     // Map camelCase to snake_case for Prisma
     const data = {
-      userid: Number(this.userid),
       contenttype: this.contenttype,
       contentid: this.contentid,
       title: this.title,
-      posterpath: this.posterPath || this.posterpath || null
+      posterpath: this.posterPath || this.posterpath || null,
+      user: {
+        connect: {
+          id: Number(this.userid)
+        }
+      }
     };
 
     if (this.id) {
-      const updated = await prisma.watchlist.update({ where: { id: this.id }, data });
+      // For updates, don't include the user relation
+      const updateData = { ...data };
+      delete updateData.user;
+      const updated = await prisma.watchlist.update({ where: { id: this.id }, data: updateData });
       Object.assign(this, updated);
       return this;
     }
