@@ -421,8 +421,11 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
           debugPrint('Failed to exit native fullscreen: $e');
         }
       } else {
-        // Mobile fullscreen
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        // Mobile fullscreen - show system UI again
+        SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: SystemUiOverlay.values,
+        );
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
         ]);
@@ -944,7 +947,10 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     WakelockPlus.disable();
 
     // Reset system UI when leaving video player
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);

@@ -52,6 +52,8 @@ class NamkeenTvApp extends StatelessWidget {
             scaffoldBackgroundColor: backgroundColor,
             appBarTheme: const AppBarTheme(
               backgroundColor: backgroundColor,
+              elevation: 0,
+              scrolledUnderElevation: 0,
               systemOverlayStyle: SystemUiOverlayStyle(
                 statusBarColor: Colors.transparent,
                 statusBarIconBrightness: Brightness.light,
