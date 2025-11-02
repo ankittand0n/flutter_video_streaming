@@ -6,12 +6,30 @@ class RatingModel {
   }
 
   async save() {
+    // Map fields for Prisma - only include fields that exist in the schema
+    const data = {
+      contenttype: this.contenttype,
+      contentid: this.contentid,
+      rating: Number(this.rating),
+      user: {
+        connect: {
+          id: Number(this.userid)
+        }
+      }
+    };
+
     if (this.id) {
-      const updated = await prisma.rating.update({ where: { id: this.id }, data: { ...this } });
+      // For updates, don't include the user relation
+      const updateData = {
+        contenttype: this.contenttype,
+        contentid: this.contentid,
+        rating: Number(this.rating)
+      };
+      const updated = await prisma.rating.update({ where: { id: this.id }, data: updateData });
       Object.assign(this, updated);
       return this;
     }
-    const created = await prisma.rating.create({ data: { ...this } });
+    const created = await prisma.rating.create({ data });
     Object.assign(this, created);
     return this;
   }
