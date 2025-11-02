@@ -44,16 +44,29 @@ if (config.cors.enabled) {
   }));
 }
 
-// Rate limiting - attach to apiRouter to limit API endpoints
+// Rate limiting - create a global limiter but skip heavy read-only movie/tmdb endpoints
+// We keep authentication routes rate-limited separately (see routes/auth.js).
 let limiter;
 if (config.rateLimit.enabled) {
+  // skip function receives (req, res) so we can exempt certain paths (e.g. TMDB/listing endpoints)
   limiter = rateLimit({
     windowMs: config.rateLimit.windowMs,
     max: config.rateLimit.max,
     message: config.rateLimit.message,
     standardHeaders: true,
     legacyHeaders: false,
-    skip: () => config.rateLimit.skip
+    // Skip when config explicitly wants to skip (e.g. development),
+    // or when the request is for known high-throughput read endpoints.
+    skip: (req, res) => {
+      if (config.rateLimit.skip) return true;
+      const path = req.path || '';
+      // Exempt TMDB proxy and media-listing routes from the global limiter
+      // so the movie app can fetch multiple lists without tripping the limiter.
+      if (path.startsWith('/tmdb') || path.startsWith('/movies') || path.startsWith('/tv') || path.startsWith('/seasons') || path.startsWith('/genres')) {
+        return true;
+      }
+      return false;
+    }
   });
   // Note: limiter will be applied to apiRouter after it's declared below
 }

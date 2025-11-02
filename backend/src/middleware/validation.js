@@ -4,7 +4,7 @@ const Joi = require('joi');
 const schemas = {
   // User registration
   register: Joi.object({
-    email: Joi.string().email().required().messages({
+    email: Joi.string().email({ tlds: { allow: false } }).required().messages({
       'string.email': 'Please provide a valid email address',
       'any.required': 'Email is required'
     }),
