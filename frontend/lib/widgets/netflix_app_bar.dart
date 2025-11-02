@@ -108,8 +108,12 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
                   tag: 'tvshows32',
                   child: FittedBox(
                     child: TextButton(
-                      style:
-                          TextButton.styleFrom(foregroundColor: Colors.white),
+                      style: ButtonStyle(
+                        foregroundColor: WidgetStateProperty.all(Colors.white),
+                        overlayColor:
+                            WidgetStateProperty.all(Colors.transparent),
+                        splashFactory: NoSplash.splashFactory,
+                      ),
                       onPressed: () {
                         context.goNamed('TV Shows');
                       },
@@ -143,8 +147,13 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
                   Opacity(
                     opacity: opacity,
                     child: TextButton(
-                        style:
-                            TextButton.styleFrom(foregroundColor: Colors.white),
+                        style: ButtonStyle(
+                          foregroundColor:
+                              WidgetStateProperty.all(Colors.white),
+                          overlayColor:
+                              WidgetStateProperty.all(Colors.transparent),
+                          splashFactory: NoSplash.splashFactory,
+                        ),
                         onPressed: () {},
                         child: const Text(
                           'Movies',
@@ -154,7 +163,11 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
                 Opacity(
                   opacity: opacity,
                   child: TextButton(
-                    style: TextButton.styleFrom(foregroundColor: Colors.white),
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
+                      splashFactory: NoSplash.splashFactory,
+                    ),
                     onPressed: () {},
                     child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -239,7 +252,11 @@ class NetflixBottomHeader extends SliverPersistentHeaderDelegate {
                 tag: 'tvshows2',
                 child: FittedBox(
                   child: TextButton(
-                    style: TextButton.styleFrom(foregroundColor: Colors.white),
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
+                      splashFactory: NoSplash.splashFactory,
+                    ),
                     onPressed: () {
                       context.goNamed('TV Shows');
                     },
@@ -273,8 +290,12 @@ class NetflixBottomHeader extends SliverPersistentHeaderDelegate {
                 Opacity(
                   opacity: opacity,
                   child: TextButton(
-                      style:
-                          TextButton.styleFrom(foregroundColor: Colors.white),
+                      style: ButtonStyle(
+                        foregroundColor: WidgetStateProperty.all(Colors.white),
+                        overlayColor:
+                            WidgetStateProperty.all(Colors.transparent),
+                        splashFactory: NoSplash.splashFactory,
+                      ),
                       onPressed: () {},
                       child: const Text(
                         'Movies',
@@ -284,7 +305,11 @@ class NetflixBottomHeader extends SliverPersistentHeaderDelegate {
               Opacity(
                 opacity: opacity,
                 child: TextButton(
-                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  style: ButtonStyle(
+                    foregroundColor: WidgetStateProperty.all(Colors.white),
+                    overlayColor: WidgetStateProperty.all(Colors.transparent),
+                    splashFactory: NoSplash.splashFactory,
+                  ),
                   onPressed: () {},
                   child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -345,7 +370,11 @@ class NetflixBottomHeaderTVShows extends SliverPersistentHeaderDelegate {
             tag: 'tvshows2',
             child: FittedBox(
               child: TextButton(
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
+                style: ButtonStyle(
+                  foregroundColor: WidgetStateProperty.all(Colors.white),
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
+                  splashFactory: NoSplash.splashFactory,
+                ),
                 onPressed: () {
                   context.go('/tvshows');
                 },
@@ -375,7 +404,11 @@ class NetflixBottomHeaderTVShows extends SliverPersistentHeaderDelegate {
             duration: _duration,
             opacity: opacity,
             child: TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              style: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(Colors.white),
+                overlayColor: WidgetStateProperty.all(Colors.transparent),
+                splashFactory: NoSplash.splashFactory,
+              ),
               onPressed: () {
                 context.go('/tvshows');
               },
