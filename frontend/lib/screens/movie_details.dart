@@ -37,6 +37,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
           context.read<MovieDetailsTabCubit>().setTab(_tabController.index);
         });
 
+  bool _showTrailerPlayer = false;
+
   @override
   void initState() {
     if (widget.movie.type == 'tv') {
@@ -106,19 +108,20 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         ),
         SliverList(
             delegate: SliverChildListDelegate.fixed([
-          // Auto-playing trailer or poster image
-          if (movie.trailerUrl != null && movie.trailerUrl!.isNotEmpty)
-            InlineTrailerPlayer(
-              trailerUrl: movie.trailerUrl!,
-              fullVideoUrl: movie.videoUrl,
-              title: movie.name,
-            )
-          else
-            PosterImage(
-              movie: movie,
-              backdrop: true,
-              borderRadius: BorderRadius.zero,
-            ),
+          // Poster image or inline trailer player
+          _showTrailerPlayer &&
+                  movie.trailerUrl != null &&
+                  movie.trailerUrl!.isNotEmpty
+              ? InlineTrailerPlayer(
+                  trailerUrl: movie.trailerUrl!,
+                  fullVideoUrl: movie.videoUrl,
+                  title: movie.name,
+                )
+              : PosterImage(
+                  movie: movie,
+                  backdrop: true,
+                  borderRadius: BorderRadius.zero,
+                ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
@@ -176,57 +179,117 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
               ],
             ),
           ),
+          // Button Row 1: Play Trailer and Play Movie
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(16.0),
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black),
-                onPressed: () {
-                  if (movie.videoUrl != null && movie.videoUrl!.isNotEmpty) {
-                    Navigator.of(context, rootNavigator: true).push(
-                      PageRouteBuilder(
-                        opaque: true,
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            MediaKitVideoPlayer(
-                          videoUrl: movie.videoUrl!,
-                          trailerUrl: movie.trailerUrl,
-                          isTrailer: false,
-                          title: movie.name,
-                          videoId: movie.id.toString(),
-                          autoPlay: true,
-                          autoFullScreen: true,
-                          onVideoEnded: () =>
-                              Navigator.of(context, rootNavigator: true).pop(),
-                        ),
-                        transitionDuration: Duration.zero,
-                        reverseTransitionDuration: Duration.zero,
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Video not available for "${movie.name}". Please add video_url in the database.'),
-                        duration: const Duration(seconds: 4),
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Play')),
+            child: Row(
+              children: [
+                // Play Trailer Button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(16.0),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      disabledBackgroundColor: Colors.grey.shade800,
+                      disabledForegroundColor: Colors.grey.shade600,
+                    ),
+                    onPressed: (movie.trailerUrl != null &&
+                            movie.trailerUrl!.isNotEmpty)
+                        ? () {
+                            setState(() {
+                              _showTrailerPlayer = !_showTrailerPlayer;
+                            });
+                            // Scroll to top to see the trailer
+                            if (_showTrailerPlayer) {
+                              Scrollable.ensureVisible(
+                                context,
+                                duration: const Duration(milliseconds: 300),
+                                alignment: 0.0,
+                              );
+                            }
+                          }
+                        : null,
+                    icon: Icon(_showTrailerPlayer
+                        ? Icons.stop
+                        : Icons.play_circle_outline),
+                    label: Text(
+                        _showTrailerPlayer ? 'Stop Trailer' : 'Play Trailer'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Play Movie Button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(16.0),
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade800,
+                      disabledForegroundColor: Colors.grey.shade600,
+                    ),
+                    onPressed: (movie.videoUrl != null &&
+                            movie.videoUrl!.isNotEmpty)
+                        ? () {
+                            Navigator.of(context, rootNavigator: true).push(
+                              PageRouteBuilder(
+                                opaque: true,
+                                pageBuilder:
+                                    (context, animation, secondaryAnimation) =>
+                                        MediaKitVideoPlayer(
+                                  videoUrl: movie.videoUrl!,
+                                  trailerUrl: movie.trailerUrl,
+                                  isTrailer: false,
+                                  title: movie.name,
+                                  videoId: movie.id.toString(),
+                                  autoPlay: true,
+                                  autoFullScreen: true,
+                                  onVideoEnded: () =>
+                                      Navigator.of(context, rootNavigator: true)
+                                          .pop(),
+                                ),
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
+                              ),
+                            );
+                          }
+                        : null,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Play Movie'),
+                  ),
+                ),
+              ],
+            ),
           ),
+          // Button Row 2: Download
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(16.0),
-                    backgroundColor: Colors.grey.shade900,
-                    foregroundColor: Colors.white),
-                onPressed: () {},
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.all(16.0),
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Download feature coming soon for "${movie.name}"'),
+                      backgroundColor: Colors.blue,
+                      action: SnackBarAction(
+                        label: 'OK',
+                        textColor: Colors.white,
+                        onPressed: () {},
+                      ),
+                    ),
+                  );
+                },
                 icon: const Icon(LucideIcons.download),
-                label: const Text('Download S1:E1')),
+                label: const Text('Download'),
+              ),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
