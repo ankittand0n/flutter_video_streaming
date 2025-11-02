@@ -159,6 +159,163 @@ class ApiService {
     }
   }
 
+  // Search
+  static Future<List<Map<String, dynamic>>> search(String query) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/movies?search=$query'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data['data']);
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print('Error searching: $e');
+      return [];
+    }
+  }
+
+  // Watchlist
+  static Future<Map<String, dynamic>> addToWatchlist(
+    String token,
+    String contentId,
+    String contentType,
+    String title,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/watchlist'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'contentid': contentId,
+          'contenttype': contentType,
+          'title': title,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      return {
+        'success': response.statusCode == 201,
+        'message': data['message'] ?? data['error'] ?? 'Unknown error',
+      };
+    } catch (e) {
+      print('Error adding to watchlist: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> removeFromWatchlist(
+    String token,
+    String contentId,
+  ) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/watchlist/$contentId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = json.decode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': data['message'] ?? data['error'] ?? 'Unknown error',
+      };
+    } catch (e) {
+      print('Error removing from watchlist: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWatchlist(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/watchlist'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data['data']);
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching watchlist: $e');
+      return [];
+    }
+  }
+
+  // Rating
+  static Future<Map<String, dynamic>> rateContent(
+    String token,
+    String contentId,
+    String contentType,
+    double rating, {
+    String? review,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/rating'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'contentid': contentId,
+          'contenttype': contentType,
+          'rating': rating,
+          if (review != null) 'review': review,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      return {
+        'success': response.statusCode == 201,
+        'message': data['message'] ?? data['error'] ?? 'Unknown error',
+      };
+    } catch (e) {
+      print('Error rating content: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getUserRating(
+    String token,
+    String contentId,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/rating/content/$contentId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'];
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching user rating: $e');
+      return null;
+    }
+  }
+
   // Helper method to get full image URL
   static String getImageUrl(String? imagePath) {
     return AppConfig.getImageUrl(imagePath);

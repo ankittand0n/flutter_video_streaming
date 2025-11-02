@@ -10,7 +10,10 @@ import 'package:namkeen_tv/widgets/poster_image.dart';
 import 'package:namkeen_tv/widgets/inline_trailer_player.dart';
 import 'package:namkeen_tv/widgets/media_kit_video_player.dart';
 import 'package:namkeen_tv/services/cast_service.dart';
+import 'package:namkeen_tv/services/auth_service.dart';
+import 'package:namkeen_tv/services/api_service.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../bloc/netflix_bloc.dart';
 import '../model/movie.dart';
@@ -18,7 +21,6 @@ import '../repository/repository.dart';
 import '../utils/utils.dart';
 import '../widgets/movie_box.dart';
 import '../widgets/movie_trailer.dart';
-import '../widgets/new_and_hot_tile_action.dart';
 
 class MovieDetailsScreen extends StatefulWidget {
   const MovieDetailsScreen({super.key, required this.movie});
@@ -36,21 +38,36 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         ..addListener(() {
           context.read<MovieDetailsTabCubit>().setTab(_tabController.index);
         });
-
+  
   bool _showTrailerPlayer = false;
+  bool _isInWatchlist = false;
+  double? _userRating;
+  bool _isLoading = false;
 
   @override
   void initState() {
+    super.initState();
     if (widget.movie.type == 'tv') {
       context
           .read<TvShowSeasonSelectorBloc>()
           .add(SelectTvShowSeason(widget.movie.id, 1));
     }
     context.read<MovieDetailsTabCubit>().setTab(_tabController.index);
-    super.initState();
+    _loadUserData();
   }
 
-  @override
+  Future<void> _loadUserData() async {
+    final authService = AuthService();
+    final token = await authService.getToken();
+    if (token != null) {
+      // Check watchlist status and user rating
+      // For now, just set defaults
+      setState(() {
+        _isInWatchlist = false;
+        _userRating = null;
+      });
+    }
+  }  @override
   Widget build(BuildContext context) {
     final configuration = context.watch<ConfigurationBloc>().state;
 
@@ -309,26 +326,32 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
               ],
             ),
           ),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              NewAndHotTileAction(
-                icon: LucideIcons.plus,
-                label: 'My List',
-              ),
-              NewAndHotTileAction(
-                icon: LucideIcons.thumbsUp,
-                label: 'Rate',
-              ),
-              NewAndHotTileAction(
-                icon: LucideIcons.share2,
-                label: 'Share',
-              ),
-              NewAndHotTileAction(
-                icon: LucideIcons.download,
-                label: 'Download Season 1',
-              )
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildActionButton(
+                  icon: _isInWatchlist ? LucideIcons.check : LucideIcons.plus,
+                  label: _isInWatchlist ? 'In List' : 'My List',
+                  onPressed: () => _toggleWatchlist(movie),
+                ),
+                _buildActionButton(
+                  icon: _userRating != null
+                      ? LucideIcons.thumbsUp
+                      : LucideIcons.thumbsUp,
+                  label: _userRating != null
+                      ? 'Rated ${_userRating!.toStringAsFixed(1)}'
+                      : 'Rate',
+                  onPressed: () => _showRatingDialog(movie),
+                ),
+                _buildActionButton(
+                  icon: LucideIcons.share2,
+                  label: 'Share',
+                  onPressed: () => _shareMovie(movie),
+                ),
+              ],
+            ),
           ),
           const Text(
             'Fast Laughs',
@@ -547,5 +570,195 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         );
       },
     );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      onTap: _isLoading ? null : onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleWatchlist(Movie movie) async {
+    setState(() => _isLoading = true);
+    
+    final authService = AuthService();
+    final token = await authService.getToken();
+    
+    if (token == null) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to use watchlist')),
+        );
+      }
+      return;
+    }
+
+    final result = _isInWatchlist
+        ? await ApiService.removeFromWatchlist(token, movie.id.toString())
+        : await ApiService.addToWatchlist(
+            token,
+            movie.id.toString(),
+            movie.type,
+            movie.name,
+          );
+
+    setState(() {
+      _isLoading = false;
+      if (result['success']) {
+        _isInWatchlist = !_isInWatchlist;
+      }
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']),
+          backgroundColor: result['success'] ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showRatingDialog(Movie movie) async {
+    double rating = _userRating ?? 5.0;
+    
+    final result = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text('Rate this content',
+            style: TextStyle(color: Colors.white)),
+        content: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${rating.toStringAsFixed(1)} / 10',
+                style: const TextStyle(color: Colors.white, fontSize: 24),
+              ),
+              Slider(
+                value: rating,
+                min: 1,
+                max: 10,
+                divisions: 18,
+                activeColor: Colors.red,
+                label: rating.toStringAsFixed(1),
+                onChanged: (value) => setState(() => rating = value),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, rating),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      await _submitRating(movie, result);
+    }
+  }
+
+  Future<void> _submitRating(Movie movie, double rating) async {
+    setState(() => _isLoading = true);
+
+    final authService = AuthService();
+    final token = await authService.getToken();
+
+    if (token == null) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to rate content')),
+        );
+      }
+      return;
+    }
+
+    final result = await ApiService.rateContent(
+      token,
+      movie.id.toString(),
+      movie.type,
+      rating,
+    );
+
+    setState(() {
+      _isLoading = false;
+      if (result['success']) {
+        _userRating = rating;
+      }
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']),
+          backgroundColor: result['success'] ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareMovie(Movie movie) async {
+    final shareUrl = 'https://namkeen-tv.app/movie/${movie.id}';
+    final shareText = 'Check out ${movie.name} on Namkeen TV!\n$shareUrl';
+
+    try {
+      final uri = Uri.parse('https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareText)}');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback: just show the share text
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text('Share', style: TextStyle(color: Colors.white)),
+              content: SelectableText(
+                shareText,
+                style: const TextStyle(color: Colors.white),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing: $e')),
+        );
+      }
+    }
   }
 }
