@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:math';
 
 import '../bloc/netflix_bloc.dart';
@@ -78,9 +79,13 @@ class HighlightMovie extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const NewAndHotTileAction(
+                        NewAndHotTileAction(
                           icon: LucideIcons.plus,
                           label: 'My List',
+                          onTap: () {
+                            // Navigate to movie details to add to list
+                            context.push('/home/movie/${randomMovie.id}');
+                          },
                         ),
                         ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
@@ -88,12 +93,19 @@ class HighlightMovie extends StatelessWidget {
                                     horizontal: 12.0, vertical: 4.0),
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.black),
-                            onPressed: () {},
+                            onPressed: () {
+                              // Navigate to movie details to play
+                              context.push('/home/movie/${randomMovie.id}');
+                            },
                             icon: const Icon(Icons.play_arrow),
                             label: const Text('Play')),
-                        const NewAndHotTileAction(
+                        NewAndHotTileAction(
                           icon: LucideIcons.info,
                           label: 'Info',
+                          onTap: () {
+                            // Navigate to movie details
+                            context.push('/home/movie/${randomMovie.id}');
+                          },
                         ),
                       ],
                     )

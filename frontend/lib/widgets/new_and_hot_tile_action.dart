@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 
 class NewAndHotTileAction extends StatelessWidget {
   const NewAndHotTileAction(
-      {super.key, required this.icon, required this.label});
+      {super.key, required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 72.0, maxWidth: 72.0),
       child: InkWell(
-          onTap: () {},
+          onTap: onTap,
           borderRadius: BorderRadius.circular(6.0),
           child: Padding(
             padding:
