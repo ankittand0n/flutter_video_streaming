@@ -28,10 +28,13 @@ router.post('/', validate('watchlistItem'), async (req, res) => {
       });
     }
 
-    // Create new watchlist item
+    // Create new watchlist item - only include fields that exist in schema
     const watchlistItem = new Watchlist({
       userid: req.user._id,
-      ...req.body
+      contentid: req.body.contentid,
+      contenttype: req.body.contenttype,
+      title: req.body.title,
+      posterPath: req.body.posterPath // Will be mapped to posterpath in save()
     });
 
     await watchlistItem.save();

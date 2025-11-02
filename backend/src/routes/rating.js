@@ -38,28 +38,19 @@ router.post('/', auth, validate('rating'), async (req, res) => {
       rating = await prisma.rating.update({
         where: { id: existingRating.id },
         data: {
-          rating: req.body.rating,
-          review: req.body.review,
-          title: req.body.title,
-          spoiler: req.body.spoiler || false,
-          tags: req.body.tags,
-          helpful: req.body.helpful,
-          updatedAt: new Date()
+          rating: Number(req.body.rating)
         }
       });
     } else {
       // Create new rating
       rating = await prisma.rating.create({
         data: {
-          userid: Number(req.user.id),
+          user: {
+            connect: { id: Number(req.user.id) }
+          },
           contentid,
           contenttype,
-          rating: req.body.rating,
-          review: req.body.review,
-          title: req.body.title,
-          spoiler: req.body.spoiler || false,
-          tags: req.body.tags,
-          helpful: req.body.helpful
+          rating: Number(req.body.rating)
         }
       });
     }
