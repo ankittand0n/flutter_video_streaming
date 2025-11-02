@@ -60,12 +60,37 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
     final authService = AuthService();
     final token = await authService.getToken();
     if (token != null) {
-      // Check watchlist status and user rating
-      // For now, just set defaults
-      setState(() {
-        _isInWatchlist = false;
-        _userRating = null;
-      });
+      try {
+        // Check if current movie is in watchlist
+        final watchlistItems = await ApiService.getWatchlist(token);
+        print('Watchlist items: $watchlistItems');
+        print('Looking for movie ID: ${widget.movie.id}');
+
+        // Try both contentId and contentid (lowercase) as the backend might use either
+        final isInList = watchlistItems.any((item) {
+          final itemId =
+              (item['contentId'] ?? item['contentid'] ?? item['id']).toString();
+          print('Comparing $itemId with ${widget.movie.id}');
+          return itemId == widget.movie.id.toString();
+        });
+
+        print('Is in watchlist: $isInList');
+
+        if (mounted) {
+          setState(() {
+            _isInWatchlist = isInList;
+            _userRating = null; // TODO: Load actual user rating
+          });
+        }
+      } catch (e) {
+        print('Error loading user data: $e');
+        if (mounted) {
+          setState(() {
+            _isInWatchlist = false;
+            _userRating = null;
+          });
+        }
+      }
     }
   }
 
@@ -335,7 +360,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
               children: [
                 _buildActionButton(
                   icon: _isInWatchlist ? LucideIcons.check : LucideIcons.plus,
-                  label: _isInWatchlist ? 'In List' : 'My List',
+                  label: _isInWatchlist ? 'Remove' : 'My List',
                   onPressed: () => _toggleWatchlist(movie),
                 ),
                 _buildActionButton(
