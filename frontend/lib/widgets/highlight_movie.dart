@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:namkeen_tv/widgets/poster_image.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math';
@@ -10,10 +9,28 @@ import '../bloc/netflix_bloc.dart';
 import '../utils/utils.dart';
 import 'genre.dart';
 import 'logo_image.dart';
-import 'new_and_hot_tile_action.dart';
 
-class HighlightMovie extends StatelessWidget {
+class HighlightMovie extends StatefulWidget {
   const HighlightMovie({super.key});
+
+  @override
+  State<HighlightMovie> createState() => _HighlightMovieState();
+}
+
+class _HighlightMovieState extends State<HighlightMovie> {
+  dynamic _selectedMovie;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final movies = context.watch<DiscoverMoviesBloc>().state;
+    if (_selectedMovie == null && movies is DiscoverMovies) {
+      if (movies.list.isNotEmpty) {
+        final random = Random();
+        _selectedMovie = movies.list[random.nextInt(movies.list.length)];
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +42,8 @@ class HighlightMovie extends StatelessWidget {
           width > 1200 ? 700.0 : (width > 800 ? 600.0 : width + (width * .6));
 
       if (movies is DiscoverMovies) {
-        // Use random movie instead of always first
-        final random = Random();
-        final randomMovie = movies.list.isNotEmpty
-            ? movies.list[random.nextInt(movies.list.length)]
-            : null;
+        final randomMovie = _selectedMovie ??
+            (movies.list.isNotEmpty ? movies.list.first : null);
 
         if (randomMovie == null) {
           return const SizedBox(); // Return empty if no movies
@@ -76,38 +90,20 @@ class HighlightMovie extends StatelessWidget {
                       genres: ['Pshychological', 'Dark', 'Drama', 'Movie'],
                       color: redColor,
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        NewAndHotTileAction(
-                          icon: LucideIcons.plus,
-                          label: 'My List',
-                          onTap: () {
-                            // Navigate to movie details to add to list
-                            context.push('/home/movie/${randomMovie.id}');
+                    Center(
+                      child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24.0, vertical: 12.0),
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black),
+                          onPressed: () {
+                            // Navigate to movie details and play
+                            context.push('/home/movies/details',
+                                extra: randomMovie);
                           },
-                        ),
-                        ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12.0, vertical: 4.0),
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black),
-                            onPressed: () {
-                              // Navigate to movie details to play
-                              context.push('/home/movie/${randomMovie.id}');
-                            },
-                            icon: const Icon(Icons.play_arrow),
-                            label: const Text('Play')),
-                        NewAndHotTileAction(
-                          icon: LucideIcons.info,
-                          label: 'Info',
-                          onTap: () {
-                            // Navigate to movie details
-                            context.push('/home/movie/${randomMovie.id}');
-                          },
-                        ),
-                      ],
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Play')),
                     )
                   ],
                 ),
