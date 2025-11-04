@@ -1,17 +1,52 @@
 const request = require('supertest');
+const axios = require('axios');
 const app = require('../src/server');
 const prisma = require('../src/prisma/client');
+const { isExternal, getBaseUrl, getTestType } = require('./test-config');
 
-describe('Auth Flow - Register and Login', () => {
+// axios instance for external tests
+const axiosInstance = isExternal() ? axios.create({ baseURL: getBaseUrl() }) : null;
+
+/**
+ * Helper for making HTTP POST requests in tests
+ */
+const post = async (path, data) => {
+  if (isExternal()) {
+    try {
+      const res = await axiosInstance.post(path, data);
+      return { body: res.data, statusCode: res.status };
+    } catch (error) {
+      if (error.response) {
+        return { body: error.response.data, statusCode: error.response.status };
+      }
+      throw error;
+    }
+  }
+  return request(app).post(path).send(data);
+};
+
+describe(`Auth Flow - Register and Login - ${getTestType()}`, () => {
   let testUser = {
-    email: 'testuser@example.com',
-    username: 'testuser123',
+    email: `testuser-${Date.now()}@example.com`,
+    username: `testuser${Date.now()}`,
     password: 'Test123!@#',
     profile_name: 'Test User'
   };
 
-  // Clean up test user before and after tests
+  beforeAll(() => {
+    console.log(`\n🧪 Running auth flow tests against: ${getTestType()}`);
+    if (isExternal()) {
+      console.log(`📡 External URL: ${getBaseUrl()}`);
+      console.log(`⚠️  Note: Cleanup is skipped for external servers\n`);
+    }
+  });
+
+  // Clean up test user before and after tests (local only)
   beforeAll(async () => {
+    if (isExternal()) {
+      return; // Skip cleanup for external servers
+    }
+
     try {
       await prisma.user.deleteMany({
         where: {
@@ -27,6 +62,10 @@ describe('Auth Flow - Register and Login', () => {
   });
 
   afterAll(async () => {
+    if (isExternal()) {
+      return; // Skip cleanup for external servers
+    }
+
     try {
       await prisma.user.deleteMany({
         where: {
@@ -44,16 +83,14 @@ describe('Auth Flow - Register and Login', () => {
 
   describe('POST /api/auth/register', () => {
     it('should register a new user successfully', async () => {
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: testUser.email,
-          username: testUser.username,
-          password: testUser.password,
-          profile_name: testUser.profile_name
-        })
-        .expect(201);
+      const response = await post('/api/auth/register', {
+        email: testUser.email,
+        username: testUser.username,
+        password: testUser.password,
+        profile_name: testUser.profile_name
+      });
 
+      expect(response.statusCode || response.status).toBe(201);
       expect(response.body).toHaveProperty('token');
       expect(response.body).toHaveProperty('message', 'User registered successfully');
       expect(response.body.user).toHaveProperty('email', testUser.email.toLowerCase());
@@ -63,46 +100,40 @@ describe('Auth Flow - Register and Login', () => {
     });
 
     it('should not register duplicate email', async () => {
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: testUser.email,
-          username: 'differentusername',
-          password: testUser.password,
-          profile_name: 'Different User'
-        })
-        .expect(400);
+      const response = await post('/api/auth/register', {
+        email: testUser.email,
+        username: 'differentusername',
+        password: testUser.password,
+        profile_name: 'Different User'
+      });
 
+      expect(response.statusCode || response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'User already exists');
     });
 
     it('should not register duplicate username', async () => {
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'different@example.com',
-          username: testUser.username,
-          password: testUser.password,
-          profile_name: 'Different User'
-        })
-        .expect(400);
+      const response = await post('/api/auth/register', {
+        email: 'different@example.com',
+        username: testUser.username,
+        password: testUser.password,
+        profile_name: 'Different User'
+      });
 
+      expect(response.statusCode || response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'User already exists');
     });
   });
 
   describe('POST /api/auth/login', () => {
     it('should login with email successfully', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: testUser.email,
-          password: testUser.password
-        })
-        .expect(200);
+      const response = await post('/api/auth/login', {
+        email: testUser.email,
+        password: testUser.password
+      });
 
       console.log('Login with email response:', JSON.stringify(response.body, null, 2));
 
+      expect(response.statusCode || response.status).toBe(200);
       expect(response.body).toHaveProperty('token');
       expect(response.body).toHaveProperty('message', 'Login successful');
       expect(response.body.user).toHaveProperty('email', testUser.email.toLowerCase());
@@ -110,16 +141,14 @@ describe('Auth Flow - Register and Login', () => {
     });
 
     it('should login with username successfully', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: testUser.username,
-          password: testUser.password
-        })
-        .expect(200);
+      const response = await post('/api/auth/login', {
+        username: testUser.username,
+        password: testUser.password
+      });
 
       console.log('Login with username response:', JSON.stringify(response.body, null, 2));
 
+      expect(response.statusCode || response.status).toBe(200);
       expect(response.body).toHaveProperty('token');
       expect(response.body).toHaveProperty('message', 'Login successful');
       expect(response.body.user).toHaveProperty('email', testUser.email.toLowerCase());
@@ -127,78 +156,76 @@ describe('Auth Flow - Register and Login', () => {
     });
 
     it('should not login with wrong password', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: testUser.email,
-          password: 'WrongPassword123'
-        })
-        .expect(401);
+      const response = await post('/api/auth/login', {
+        email: testUser.email,
+        password: 'WrongPassword123'
+      });
 
       console.log('Wrong password response:', JSON.stringify(response.body, null, 2));
 
+      expect(response.statusCode || response.status).toBe(401);
       expect(response.body).toHaveProperty('error', 'Invalid credentials');
     });
 
     it('should not login with non-existent email', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'nonexistent@example.com',
-          password: testUser.password
-        })
-        .expect(401);
+      const response = await post('/api/auth/login', {
+        email: 'nonexistent@example.com',
+        password: testUser.password
+      });
 
       console.log('Non-existent email response:', JSON.stringify(response.body, null, 2));
 
+      expect(response.statusCode || response.status).toBe(401);
       expect(response.body).toHaveProperty('error', 'Invalid credentials');
     });
 
     it('should not login with non-existent username', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: 'nonexistentuser',
-          password: testUser.password
-        })
-        .expect(401);
+      const response = await post('/api/auth/login', {
+        username: 'nonexistentuser',
+        password: testUser.password
+      });
 
       console.log('Non-existent username response:', JSON.stringify(response.body, null, 2));
 
+      expect(response.statusCode || response.status).toBe(401);
       expect(response.body).toHaveProperty('error', 'Invalid credentials');
     });
   });
 
   describe('POST /api/auth/login - Phone Number Test', () => {
     const phoneUser = {
-      email: '9876543210@phone.com', // Using phone as email
-      username: '9876543210',
+      email: `${Date.now()}@phone.com`, // Using timestamp as phone
+      username: `${Date.now()}`,
       password: 'Phone123!@#',
       profile_name: 'Phone User'
     };
 
     beforeAll(async () => {
-      // Clean up phone test user
-      try {
-        await prisma.user.deleteMany({
-          where: {
-            OR: [
-              { email: phoneUser.email.toLowerCase() },
-              { username: phoneUser.username.toLowerCase() }
-            ]
-          }
-        });
-      } catch (error) {
-        console.log('Cleanup error:', error.message);
+      // Clean up phone test user (local only)
+      if (!isExternal()) {
+        try {
+          await prisma.user.deleteMany({
+            where: {
+              OR: [
+                { email: phoneUser.email.toLowerCase() },
+                { username: phoneUser.username.toLowerCase() }
+              ]
+            }
+          });
+        } catch (error) {
+          console.log('Cleanup error:', error.message);
+        }
       }
 
-      // Register phone user
-      await request(app)
-        .post('/api/auth/register')
-        .send(phoneUser);
+      // Register phone user (both local and external)
+      await post('/api/auth/register', phoneUser);
     });
 
     afterAll(async () => {
+      if (isExternal()) {
+        return; // Skip cleanup for external servers
+      }
+
       try {
         await prisma.user.deleteMany({
           where: {
@@ -214,16 +241,14 @@ describe('Auth Flow - Register and Login', () => {
     });
 
     it('should login with phone number as username', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: phoneUser.username,
-          password: phoneUser.password
-        })
-        .expect(200);
+      const response = await post('/api/auth/login', {
+        username: phoneUser.username,
+        password: phoneUser.password
+      });
 
       console.log('Login with phone response:', JSON.stringify(response.body, null, 2));
 
+      expect(response.statusCode || response.status).toBe(200);
       expect(response.body).toHaveProperty('token');
       expect(response.body.user).toHaveProperty('username', phoneUser.username.toLowerCase());
     });

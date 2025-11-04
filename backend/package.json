@@ -20,7 +20,14 @@
     "test:integration:local": "jest --testPathPattern=integration.test.js",
     "test:integration:server": "cross-env TEST_EXTERNAL=true jest --testPathPattern=integration.test.js",
     "test:numeric": "jest --testPathPattern=numeric-fields.test.js",
-    "test:rating": "jest --testPathPattern=rating.test.js"
+    "test:numeric:local": "jest --testPathPattern=numeric-fields.test.js",
+    "test:numeric:server": "cross-env TEST_EXTERNAL=true jest --testPathPattern=numeric-fields.test.js",
+    "test:rating": "jest --testPathPattern=rating.test.js",
+    "test:rating:local": "jest --testPathPattern=rating.test.js",
+    "test:rating:server": "cross-env TEST_EXTERNAL=true jest --testPathPattern=rating.test.js",
+    "test:auth-flow": "jest --testPathPattern=auth-flow.test.js",
+    "test:auth-flow:local": "jest --testPathPattern=auth-flow.test.js",
+    "test:auth-flow:server": "cross-env TEST_EXTERNAL=true jest --testPathPattern=auth-flow.test.js"
   },
   "keywords": [
     "netflix",
