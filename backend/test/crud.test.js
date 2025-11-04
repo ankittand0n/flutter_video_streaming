@@ -17,10 +17,10 @@ describe('Full CRUD test for all tables', () => {
       if (created.ratingId) await prisma.rating.delete({ where: { id: created.ratingId } }).catch(() => {});
       if (created.watchlistId) await prisma.watchlist.delete({ where: { id: created.watchlistId } }).catch(() => {});
       if (created.seasonId) await prisma.season.delete({ where: { id: created.seasonId } }).catch(() => {});
-      if (created.tvId) await prisma.tvSeries.delete({ where: { id: created.tvId } }).catch(() => {});
+      if (created.tvId) await prisma.tv_series.delete({ where: { id: created.tvId } }).catch(() => {});
       if (created.movieId) await prisma.movie.delete({ where: { id: created.movieId } }).catch(() => {});
       if (created.genreId) await prisma.genre.delete({ where: { id: created.genreId } }).catch(() => {});
-      if (created.userid) await prisma.user.delete({ where: { id: created.userid } }).catch(() => {});
+      if (created.user_id) await prisma.user.delete({ where: { id: created.user_id } }).catch(() => {});
     } catch (e) {
       // ignore
     }
@@ -70,14 +70,14 @@ describe('Full CRUD test for all tables', () => {
   });
 
   test('TV Series & Season CRUD', async () => {
-    const tv = await prisma.tvSeries.create({ data: { name: `Test TV ${Date.now()}`, overview: 'TV overview', genre_ids: JSON.stringify([1]) } });
+    const tv = await prisma.tv_series.create({ data: { name: `Test TV ${Date.now()}`, overview: 'TV overview', genre_ids: JSON.stringify([1]) } });
     expect(tv).toHaveProperty('id');
     created.tvId = tv.id;
 
-    const found = await prisma.tvSeries.findUnique({ where: { id: tv.id } });
+    const found = await prisma.tv_series.findUnique({ where: { id: tv.id } });
     expect(found.name).toBe(tv.name);
 
-    const updatedTv = await prisma.tvSeries.update({ where: { id: tv.id }, data: { vote_average: 8.1 } });
+    const updatedTv = await prisma.tv_series.update({ where: { id: tv.id }, data: { vote_average: 8.1 } });
     expect(Number(updatedTv.vote_average)).toBeCloseTo(8.1);
 
     const season = await prisma.season.create({ data: { tv_series_id: tv.id, season_number: 1, name: 'S1' } });
@@ -94,7 +94,7 @@ describe('Full CRUD test for all tables', () => {
     await prisma.season.delete({ where: { id: season.id } });
     delete created.seasonId;
 
-    const deletedTv = await prisma.tvSeries.delete({ where: { id: tv.id } });
+    const deletedTv = await prisma.tv_series.delete({ where: { id: tv.id } });
     expect(deletedTv.id).toBe(tv.id);
     delete created.tvId;
   });
@@ -102,12 +102,12 @@ describe('Full CRUD test for all tables', () => {
   test('User, Watchlist, Rating CRUD', async () => {
     // Create user
     const email = `testuser+${Date.now()}@example.com`;
-    const user = await prisma.user.create({ data: { email, password: 'password123', username: `user${Date.now()}`, profilename: 'Test User' } });
+    const user = await prisma.user.create({ data: { email, password: 'password123', username: `user${Date.now()}`, profile_name: 'Test User' } });
     expect(user).toHaveProperty('id');
-    created.userid = user.id;
+    created.user_id = user.id;
 
     // Create watchlist item
-    const w = await prisma.watchlist.create({ data: { userid: user.id, contentid: '9999', contenttype: 'movie', title: 'WL Item' } });
+    const w = await prisma.watchlist.create({ data: { user_id: user.id, media_id: '9999', media_type: 'movie', title: 'WL Item' } });
     expect(w).toHaveProperty('id');
     created.watchlistId = w.id;
 
@@ -118,7 +118,7 @@ describe('Full CRUD test for all tables', () => {
     expect(updatedW.title).toBe('Updated WL Item');
 
     // Create rating
-    const r = await prisma.rating.create({ data: { userid: user.id, contentid: '9999', contenttype: 'movie', rating: 8.5 } });
+    const r = await prisma.rating.create({ data: { user_id: user.id, media_id: '9999', media_type: 'movie', rating: 8.5 } });
     expect(r).toHaveProperty('id');
     created.ratingId = r.id;
 
@@ -137,6 +137,6 @@ describe('Full CRUD test for all tables', () => {
 
     // delete user
     await prisma.user.delete({ where: { id: user.id } });
-    delete created.userid;
+    delete created.user_id;
   });
 });

@@ -18,7 +18,7 @@ const schemas = {
       'string.pattern.base': 'Username can only contain letters and numbers',
       'any.required': 'Username is required'
     }),
-    profilename: Joi.string().min(2).max(100).required().messages({
+    profile_name: Joi.string().min(2).max(100).required().messages({
       'string.min': 'Profile name must be at least 2 characters long',
       'string.max': 'Profile name cannot exceed 100 characters',
       'any.required': 'Profile name is required'
@@ -55,7 +55,7 @@ const schemas = {
 
   // User profile update
   updateProfile: Joi.object({
-    profilename: Joi.string().min(2).max(50).optional().messages({
+    profile_name: Joi.string().min(2).max(50).optional().messages({
       'string.min': 'Profile name must be at least 2 characters long',
       'string.max': 'Profile name cannot exceed 50 characters'
     })
@@ -63,12 +63,12 @@ const schemas = {
 
   // Watchlist item
   watchlistItem: Joi.object({
-    contentid: Joi.string().required().messages({
-      'any.required': 'Content ID is required'
+    media_id: Joi.string().required().messages({
+      'any.required': 'Media ID is required'
     }),
-    contenttype: Joi.string().valid('movie', 'tv').required().messages({
-      'any.required': 'Content type is required',
-      'any.only': 'Content type must be either movie or tv'
+    media_type: Joi.string().valid('movie', 'tv').required().messages({
+      'any.required': 'Media type is required',
+      'any.only': 'Media type must be either movie or tv'
     }),
     title: Joi.string().required().messages({
       'any.required': 'Title is required'
@@ -86,12 +86,12 @@ const schemas = {
 
   // Rating
   rating: Joi.object({
-    contentid: Joi.string().required().messages({
-      'any.required': 'Content ID is required'
+    media_id: Joi.string().required().messages({
+      'any.required': 'Media ID is required'
     }),
-    contenttype: Joi.string().valid('movie', 'tv').required().messages({
-      'any.required': 'Content type is required',
-      'any.only': 'Content type must be either movie or tv'
+    media_type: Joi.string().valid('movie', 'tv').required().messages({
+      'any.required': 'Media type is required',
+      'any.only': 'Media type must be either movie or tv'
     }),
     rating: Joi.number().min(1).max(10).required().messages({
       'number.min': 'Rating must be at least 1',

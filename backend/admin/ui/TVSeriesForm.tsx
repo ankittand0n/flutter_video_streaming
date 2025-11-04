@@ -15,6 +15,13 @@ interface TVSeriesFormProps {
 }
 
 const TVSeriesForm: React.FC<TVSeriesFormProps> = ({ tvSeries, onSuccess, onCancel }) => {
+  // Initialize trailer_urls from either the new array or old single trailer
+  const initialTrailers = tvSeries?.trailer_urls && tvSeries.trailer_urls.length > 0 
+    ? tvSeries.trailer_urls 
+    : tvSeries?.trailer_url 
+      ? [tvSeries.trailer_url]
+      : ['']
+
   const [formData, setFormData] = useState({
     name: tvSeries?.name || '',
     overview: tvSeries?.overview || '',
@@ -24,10 +31,10 @@ const TVSeriesForm: React.FC<TVSeriesFormProps> = ({ tvSeries, onSuccess, onCanc
     number_of_seasons: tvSeries?.number_of_seasons || '',
     number_of_episodes: tvSeries?.number_of_episodes || '',
     status: tvSeries?.status || 'Ended',
-    video_url: tvSeries?.video_url || '',
-    trailer_url: tvSeries?.trailer_url || ''
+    video_url: tvSeries?.video_url || ''
   })
 
+  const [trailerUrls, setTrailerUrls] = useState<string[]>(initialTrailers)
   const [seasons, setSeasons] = useState<Season[]>(
     tvSeries?.seasons ? JSON.parse(tvSeries.seasons) : []
   )
@@ -72,7 +79,11 @@ const TVSeriesForm: React.FC<TVSeriesFormProps> = ({ tvSeries, onSuccess, onCanc
       submitData.append('number_of_episodes', formData.number_of_episodes)
       submitData.append('status', formData.status)
       submitData.append('video_url', formData.video_url)
-      submitData.append('trailer_url', formData.trailer_url)
+      
+      // Send trailer_urls as JSON array, filtering out empty strings
+      const validTrailers = trailerUrls.filter(url => url.trim() !== '')
+      submitData.append('trailer_urls', JSON.stringify(validTrailers))
+      
       submitData.append('seasons', JSON.stringify(seasons))
 
       if (posterFile) submitData.append('poster', posterFile)
@@ -224,25 +235,52 @@ const TVSeriesForm: React.FC<TVSeriesFormProps> = ({ tvSeries, onSuccess, onCanc
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-muted mb-1">Video URL</label>
-              <input
-                type="url"
-                value={formData.video_url}
-                onChange={(e) => setFormData({...formData, video_url: e.target.value})}
-                className="w-full px-3 py-2 bg-background-2 border border-accent-secondary rounded-lg text-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-muted mb-1">Video URL</label>
+            <input
+              type="url"
+              value={formData.video_url}
+              onChange={(e) => setFormData({...formData, video_url: e.target.value})}
+              className="w-full px-3 py-2 bg-background-2 border border-accent-secondary rounded-lg text-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors"
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-muted mb-1">Trailer URL</label>
-              <input
-                type="url"
-                value={formData.trailer_url}
-                onChange={(e) => setFormData({...formData, trailer_url: e.target.value})}
-                className="w-full px-3 py-2 bg-background-2 border border-accent-secondary rounded-lg text-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors"
-              />
+          <div>
+            <label className="block text-sm font-medium text-muted mb-1">
+              Trailer URLs (Multiple trailers will be played randomly)
+            </label>
+            <div className="space-y-2">
+              {trailerUrls.map((url, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => {
+                      const newTrailers = [...trailerUrls]
+                      newTrailers[index] = e.target.value
+                      setTrailerUrls(newTrailers)
+                    }}
+                    placeholder={`Trailer ${index + 1} URL`}
+                    className="flex-1 px-3 py-2 bg-background-2 border border-accent-secondary rounded-lg text-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-colors"
+                  />
+                  {trailerUrls.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setTrailerUrls(trailerUrls.filter((_, i) => i !== index))}
+                      className="px-3 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setTrailerUrls([...trailerUrls, ''])}
+                className="px-4 py-2 bg-accent/10 text-accent border border-accent/30 rounded-lg hover:bg-accent/20 transition-colors text-sm"
+              >
+                + Add Another Trailer
+              </button>
             </div>
           </div>
 

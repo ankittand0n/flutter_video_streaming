@@ -21,14 +21,14 @@ router.post('/', auth, validate('rating'), async (req, res) => {
       });
     }
 
-    const { contentid, contenttype } = req.body;
+    const { media_id, media_type } = req.body;
 
     // Check if user already rated this content
     let existingRating = await prisma.rating.findFirst({
       where: {
-        userid: Number(req.user.id),
-        contentid,
-        contenttype
+        user_id: Number(req.user.id),
+        media_id,
+        media_type
       }
     });
 
@@ -48,8 +48,8 @@ router.post('/', auth, validate('rating'), async (req, res) => {
           user: {
             connect: { id: Number(req.user.id) }
           },
-          contentid,
-          contenttype,
+          media_id,
+          media_type,
           rating: Number(req.body.rating)
         }
       });
@@ -77,9 +77,9 @@ router.post('/', auth, validate('rating'), async (req, res) => {
 router.get('/content/:contentid', validateQuery('pagination'), async (req, res) => {
   try {
     const { contentid } = req.params;
-    const { contenttype, page = 1, limit = 20, rating, spoiler } = req.query;
+    const { media_type, page = 1, limit = 20, rating, spoiler } = req.query;
 
-    if (!contenttype) {
+    if (!media_type) {
       return res.status(400).json({
         success: false,
         error: 'Content type is required'
@@ -90,8 +90,8 @@ router.get('/content/:contentid', validateQuery('pagination'), async (req, res) 
 
     // Get ratings with query conditions
     const where = {
-      contentid,
-      contenttype,
+      media_id: contentid,
+      media_type,
       ...(rating && { rating: { gte: parseInt(rating) } }),
       ...(spoiler !== undefined && { spoiler: spoiler === 'true' })
     };
@@ -106,12 +106,12 @@ router.get('/content/:contentid', validateQuery('pagination'), async (req, res) 
           select: {
             id: true,
             username: true,
-            profilename: true,
-            profileavatar: true
+            profile_name: true,
+            profile_avatar: true
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     // Get total count
@@ -119,7 +119,7 @@ router.get('/content/:contentid', validateQuery('pagination'), async (req, res) 
 
     // Get average rating using Prisma's aggregate
     const avgResult = await prisma.rating.aggregate({
-      where: { contentid, contenttype },
+      where: { media_id: contentid, media_type },
       _avg: { rating: true },
       _count: true
     });
@@ -156,14 +156,14 @@ router.get('/content/:contentid', validateQuery('pagination'), async (req, res) 
 // @access  Private
 router.get('/user', auth, validateQuery('pagination'), async (req, res) => {
   try {
-    const { page = 1, limit = 20, contenttype, rating } = req.query;
+    const { page = 1, limit = 20, media_type, rating } = req.query;
 
     const skip = (page - 1) * limit;
 
     // Get user's ratings
     const where = {
-      userid: Number(req.user.id),
-      ...(contenttype && { contenttype }),
+      user_id: Number(req.user.id),
+      ...(media_type && { media_type }),
       ...(rating && { rating: { gte: parseInt(rating) } })
     };
 
@@ -176,12 +176,12 @@ router.get('/user', auth, validateQuery('pagination'), async (req, res) => {
           select: {
             id: true,
             username: true,
-            profilename: true,
-            profileavatar: true
+            profile_name: true,
+            profile_avatar: true
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     // Get total count
@@ -224,8 +224,8 @@ router.get('/:id', async (req, res) => {
           select: {
             id: true,
             username: true,
-            profilename: true,
-            profileavatar: true
+            profile_name: true,
+            profile_avatar: true
           }
         }
       }
@@ -274,18 +274,18 @@ router.put('/:id', auth, async (req, res) => {
     const updateData = req.body;
 
     // Remove fields that shouldn't be updated
-    delete updateData.userid;
-    delete updateData.contentid;
-    delete updateData.contenttype;
+    delete updateData.user_id;
+    delete updateData.media_id;
+    delete updateData.media_type;
 
     const rating = await prisma.rating.updateMany({
       where: {
         id: parseInt(id),
-        userid: Number(req.user.id)
+        user_id: Number(req.user.id)
       },
       data: {
         ...updateData,
-        updatedAt: new Date()
+        updated_at: new Date()
       }
     });
 
@@ -304,8 +304,8 @@ router.put('/:id', auth, async (req, res) => {
           select: {
             id: true,
             username: true,
-            profilename: true,
-            profileavatar: true
+            profile_name: true,
+            profile_avatar: true
           }
         }
       }
@@ -349,7 +349,7 @@ router.delete('/:id', auth, async (req, res) => {
     const rating = await prisma.rating.deleteMany({
       where: {
         id: parseInt(id),
-        userid: Number(req.user.id)
+        user_id: Number(req.user.id)
       }
     });
 
@@ -414,8 +414,8 @@ router.post('/:id/helpful', auth, async (req, res) => {
           select: {
             id: true,
             username: true,
-            profilename: true,
-            profileavatar: true
+            profile_name: true,
+            profile_avatar: true
           }
         }
       }
@@ -457,7 +457,7 @@ router.delete('/:id/helpful', auth, async (req, res) => {
 
     // Remove user from helpful list
     const currentHelpful = rating.helpful ? JSON.parse(rating.helpful) : [];
-    const updatedHelpful = currentHelpful.filter(userid => userid !== req.user.id);
+    const updatedHelpful = currentHelpful.filter(user_id => user_id !== req.user.id);
 
     const updatedRating = await prisma.rating.update({
       where: { id: parseInt(id) },
@@ -469,8 +469,8 @@ router.delete('/:id/helpful', auth, async (req, res) => {
           select: {
             id: true,
             username: true,
-            profilename: true,
-            profileavatar: true
+            profile_name: true,
+            profile_avatar: true
           }
         }
       }
@@ -497,46 +497,46 @@ router.delete('/:id/helpful', auth, async (req, res) => {
 // @access  Private
 router.get('/stats/user', auth, async (req, res) => {
   try {
-    const userid = Number(req.user.id);
+    const user_id = Number(req.user.id);
 
     // Get total ratings
     const totalRatings = await prisma.rating.count({
-      where: { userid }
+      where: { user_id }
     });
 
     // Get ratings by content type
     const movieRatings = await prisma.rating.count({
-      where: { userid, contenttype: 'movie' }
+      where: { user_id, media_type: 'movie' }
     });
     const tvRatings = await prisma.rating.count({
-      where: { userid, contenttype: 'tv' }
+      where: { user_id, media_type: 'tv' }
     });
 
     // Get average rating
     const avgResult = await prisma.rating.aggregate({
-      where: { userid },
+      where: { user_id },
       _avg: { rating: true }
     });
 
     // Get rating distribution
     const ratingDistribution = await prisma.rating.groupBy({
       by: ['rating'],
-      where: { userid },
+      where: { user_id },
       _count: { rating: true },
       orderBy: { rating: 'asc' }
     });
 
     // Get recent ratings
     const recentRatings = await prisma.rating.findMany({
-      where: { userid },
+      where: { user_id },
       take: 5,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       select: {
-        contentid: true,
-        contenttype: true,
+        media_id: true,
+        media_type: true,
         rating: true,
         title: true,
-        createdAt: true
+        created_at: true
       }
     });
 
@@ -573,9 +573,9 @@ router.get('/stats/user', auth, async (req, res) => {
 router.get('/stats/content/:contentid', async (req, res) => {
   try {
     const { contentid } = req.params;
-    const { contenttype } = req.query;
+    const { media_type } = req.query;
 
-    if (!contenttype) {
+    if (!media_type) {
       return res.status(400).json({
         success: false,
         error: 'Content type is required'
@@ -584,7 +584,7 @@ router.get('/stats/content/:contentid', async (req, res) => {
 
     // Get average rating and total count
     const avgResult = await prisma.rating.aggregate({
-      where: { contentid, contenttype },
+      where: { media_id: contentid, media_type },
       _avg: { rating: true },
       _count: true
     });
@@ -592,23 +592,23 @@ router.get('/stats/content/:contentid', async (req, res) => {
     // Get rating distribution
     const ratingDistribution = await prisma.rating.groupBy({
       by: ['rating'],
-      where: { contentid, contenttype },
+      where: { media_id: contentid, media_type },
       _count: { rating: true },
       orderBy: { rating: 'asc' }
     });
 
     // Get recent ratings
     const recentRatings = await prisma.rating.findMany({
-      where: { contentid, contenttype },
+      where: { media_id: contentid, media_type },
       take: 5,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       include: {
         user: {
           select: {
             id: true,
             username: true,
-            profilename: true,
-            profileavatar: true
+            profile_name: true,
+            profile_avatar: true
           }
         }
       },
@@ -616,7 +616,7 @@ router.get('/stats/content/:contentid', async (req, res) => {
         rating: true,
         review: true,
         title: true,
-        createdAt: true,
+        created_at: true,
         user: true
       }
     });

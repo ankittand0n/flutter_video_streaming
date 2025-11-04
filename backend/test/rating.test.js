@@ -26,8 +26,8 @@ describe('Rating Functionality Tests', () => {
       .post('/api/rating')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        contentid: '12345',
-        contenttype: 'movie',
+        media_id: '12345',
+        media_type: 'movie',
         rating: 5,
         review: 'Great movie!',
         title: 'Admin review'
@@ -37,23 +37,23 @@ describe('Rating Functionality Tests', () => {
 
   // All the validation tests should return 403 (admin blocked) rather than 400 (validation error)
   // because admin authentication is checked before validation
-  test('Rating validation - missing contentid', async () => {
+  test('Rating validation - missing media_id', async () => {
     await request(app)
       .post('/api/rating')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        contenttype: 'movie',
+        media_type: 'movie',
         rating: 5
       })
       .expect(400);
   });
 
-  test('Rating validation - missing contenttype', async () => {
+  test('Rating validation - missing media_type', async () => {
     await request(app)
       .post('/api/rating')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        contentid: '12345',
+        media_id: '12345',
         rating: 5
       })
       .expect(400);
@@ -64,8 +64,8 @@ describe('Rating Functionality Tests', () => {
       .post('/api/rating')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        contentid: '12345',
-        contenttype: 'movie'
+        media_id: '12345',
+        media_type: 'movie'
       })
       .expect(400);
   });
@@ -75,20 +75,20 @@ describe('Rating Functionality Tests', () => {
       .post('/api/rating')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        contentid: '12345',
-        contenttype: 'movie',
+        media_id: '12345',
+        media_type: 'movie',
         rating: 15
       })
       .expect(400);
   });
 
-  test('Rating validation - invalid contenttype', async () => {
+  test('Rating validation - invalid media_type', async () => {
     await request(app)
       .post('/api/rating')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        contentid: '12345',
-        contenttype: 'invalid',
+        media_id: '12345',
+        media_type: 'invalid',
         rating: 5
       })
       .expect(400);

@@ -29,8 +29,8 @@ router.get('/', async (req, res) => {
     if (req.query.search) where.name = { contains: req.query.search };
 
     const [data, total] = await Promise.all([
-      prisma.tvSeries.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
-      prisma.tvSeries.count({ where })
+      prisma.tv_series.findMany({ where, take: limit, skip, orderBy: { created_at: 'desc' } }),
+      prisma.tv_series.count({ where })
     ]);
 
     // Add full URLs to image paths
@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const tv = await prisma.tvSeries.findUnique({ where: { id } });
+    const tv = await prisma.tv_series.findUnique({ where: { id } });
     if (!tv) return res.status(404).json({ success: false, error: 'TV series not found' });
     
     // Add full URLs to image paths
@@ -64,7 +64,7 @@ router.get('/:id', async (req, res) => {
 router.get('/popular/list', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
-    const data = await prisma.tvSeries.findMany({ take: limit, orderBy: { vote_average: 'desc' } });
+    const data = await prisma.tv_series.findMany({ take: limit, orderBy: { vote_average: 'desc' } });
     
     // Add full URLs to image paths
     const transformedData = data.map(item => addImageUrls(req, item));
@@ -80,7 +80,7 @@ router.get('/popular/list', async (req, res) => {
 router.get('/top-rated/list', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
-    const data = await prisma.tvSeries.findMany({ where: { vote_average: { gt: 0 } }, take: limit, orderBy: { vote_average: 'desc' } });
+    const data = await prisma.tv_series.findMany({ where: { vote_average: { gt: 0 } }, take: limit, orderBy: { vote_average: 'desc' } });
     
     // Add full URLs to image paths
     const transformedData = data.map(item => addImageUrls(req, item));
@@ -102,8 +102,8 @@ router.get('/genre/:genreId/list', async (req, res) => {
 
     const where = { genre_ids: { contains: genreId } };
     const [data, total] = await Promise.all([
-      prisma.tvSeries.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
-      prisma.tvSeries.count({ where })
+      prisma.tv_series.findMany({ where, take: limit, skip, orderBy: { created_at: 'desc' } }),
+      prisma.tv_series.count({ where })
     ]);
 
     // Add full URLs to image paths

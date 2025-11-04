@@ -53,8 +53,6 @@ async function main() {
       poster_path: '/images/movies/9.jpeg',
       backdrop_path: '/images/movies/9.jpeg',
       genre_ids: '[53,27,18]',
-      original_language: 'hi',
-      video: true,
       video_url: 'https://firebasestorage.googleapis.com/v0/b/namkeen-tv-2e1b5.appspot.com/o/ANTERVYATHAA%20-%20AMAZON%20PRIME%20-%20June%202021.mp4?alt=media&token=1c75ecd0-1551-4ea7-9453-a3a60949d5eb',
       trailer_url: 'https://youtu.be/rcERXIpD3SI?si=w8utbsnpzuPMA1AU'
     },
@@ -62,29 +60,25 @@ async function main() {
       title: 'Chunky Pandey',
       poster_path: '/images/movies/posterImage-1758264640756-215014902.jpeg',
       backdrop_path: '/images/movies/posterImage-1758264640756-215014902.jpeg',
-      genre_ids: '[18]',
-      original_language: 'en'
+      genre_ids: '[18]'
     },
     {
       title: 'Chunky Pandey',
       poster_path: '/images/movies/posterImage-1758264642841-117682372.jpeg',
       backdrop_path: '/images/movies/posterImage-1758264642841-117682372.jpeg',
-      genre_ids: '[18]',
-      original_language: 'en'
+      genre_ids: '[18]'
     },
     {
       title: 'Chunky Pandey',
       poster_path: '/images/movies/posterImage-1758264650060-623848046.jpeg',
       backdrop_path: '/images/movies/posterImage-1758264650060-623848046.jpeg',
-      genre_ids: '[18]',
-      original_language: 'en'
+      genre_ids: '[18]'
     },
     {
       title: 'Chunky Ponky',
       poster_path: '/images/movies/posterImage-1758264858587-836182551.jpeg',
       backdrop_path: '/images/movies/posterImage-1758264640756-215014902.jpeg',
-      genre_ids: '[18]',
-      original_language: 'en'
+      genre_ids: '[18]'
     }
   ];
 
@@ -101,13 +95,12 @@ async function main() {
       name: 'poopoo',
       poster_path: '/images/tv_series/posterImage-1758265351021-660240754.jpeg',
       backdrop_path: '/images/tv_series/posterImage-1758265200614-911729768.jpeg',
-      genre_ids: '[18]',
-      original_language: 'en'
+      genre_ids: '[18]'
     }
   ];
 
   for (const series of tvSeries) {
-    await prisma.tvSeries.create({
+    await prisma.tv_series.create({
       data: series
     });
   }

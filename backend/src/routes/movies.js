@@ -39,6 +39,21 @@ router.post('/', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name: '
       movieData.genre_ids = JSON.stringify(JSON.parse(movieData.genre_ids));
     }
 
+    // Parse trailer_urls array
+    if (movieData.trailer_urls) {
+      if (typeof movieData.trailer_urls === 'string') {
+        try {
+          movieData.trailer_urls = JSON.parse(movieData.trailer_urls);
+        } catch (e) {
+          movieData.trailer_urls = [movieData.trailer_urls];
+        }
+      }
+      // Filter out empty strings
+      if (Array.isArray(movieData.trailer_urls)) {
+        movieData.trailer_urls = movieData.trailer_urls.filter(url => url && url.trim());
+      }
+    }
+
     // Parse date fields
     if (movieData.release_date) {
       movieData.release_date = new Date(movieData.release_date);
@@ -75,7 +90,7 @@ router.get('/', async (req, res) => {
 
     // Cache disabled - always fetch fresh data
     const [data, total] = await Promise.all([
-      prisma.movie.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
+      prisma.movie.findMany({ where, take: limit, skip, orderBy: { created_at: 'desc' } }),
       prisma.movie.count({ where })
     ]);
 
@@ -125,6 +140,21 @@ router.put('/:id', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name:
     // Parse JSON fields
     if (movieData.genre_ids) {
       movieData.genre_ids = JSON.stringify(JSON.parse(movieData.genre_ids));
+    }
+
+    // Parse trailer_urls array
+    if (movieData.trailer_urls) {
+      if (typeof movieData.trailer_urls === 'string') {
+        try {
+          movieData.trailer_urls = JSON.parse(movieData.trailer_urls);
+        } catch (e) {
+          movieData.trailer_urls = [movieData.trailer_urls];
+        }
+      }
+      // Filter out empty strings
+      if (Array.isArray(movieData.trailer_urls)) {
+        movieData.trailer_urls = movieData.trailer_urls.filter(url => url && url.trim());
+      }
     }
 
     // Parse date fields

@@ -12,9 +12,9 @@ const router = express.Router();
 router.use(rateLimit(authRateLimit));
 
 // Generate JWT token
-const generateToken = (userid) => {
+const generateToken = (user_id) => {
   return jwt.sign(
-    { userid },
+    { user_id },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
@@ -25,7 +25,7 @@ const generateToken = (userid) => {
 // @access  Public
 router.post('/register', validate('register'), async (req, res) => {
   try {
-    const { email, password, username, profilename } = req.body;
+    const { email, password, username, profile_name } = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findFirst({
@@ -52,8 +52,8 @@ router.post('/register', validate('register'), async (req, res) => {
         email: email.toLowerCase(),
         password: password, // Prisma middleware will hash this
         username: username.toLowerCase(),
-        profilename: profilename || username,
-        isactive: true
+        profile_name: profile_name || username,
+        is_active: true
       }
     });
 
@@ -63,7 +63,7 @@ router.post('/register', validate('register'), async (req, res) => {
     // Update last login
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastlogin: new Date() }
+      data: { last_login: new Date() }
     });
 
     res.status(201).json({
@@ -73,7 +73,7 @@ router.post('/register', validate('register'), async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        profilename: user.profilename
+        profile_name: user.profile_name
       }
     });
 
@@ -117,7 +117,7 @@ router.post('/login', validate('login'), async (req, res) => {
     }
 
     // Check if account is active
-    if (!user.isactive) {
+    if (!user.is_active) {
       return res.status(401).json({
         error: 'Account is deactivated'
       });
@@ -137,7 +137,7 @@ router.post('/login', validate('login'), async (req, res) => {
     // Update last login
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastlogin: new Date() }
+      data: { last_login: new Date() }
     });
 
     res.json({
@@ -147,7 +147,7 @@ router.post('/login', validate('login'), async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        profilename: user.profilename
+        profile_name: user.profile_name
       }
     });
 
@@ -175,7 +175,7 @@ router.post('/refresh', auth, async (req, res) => {
         id: req.user.id,
         email: req.user.email,
         username: req.user.username,
-        profilename: req.user.profilename
+        profile_name: req.user.profile_name
       }
     });
 
@@ -198,8 +198,8 @@ router.get('/me', auth, async (req, res) => {
         id: req.user.id,
         email: req.user.email,
         username: req.user.username,
-        profilename: req.user.profilename,
-        createdAt: req.user.createdat
+        profile_name: req.user.profile_name,
+        createdAt: req.user.created_at
       }
     });
 
@@ -217,13 +217,13 @@ router.get('/me', auth, async (req, res) => {
 // @access  Private
 router.put('/profile', auth, validate('updateProfile'), async (req, res) => {
   try {
-    const { profilename } = req.body;
+    const { profile_name } = req.body;
     
     // Update user profile with Prisma
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: {
-        profilename: profilename || req.user.profilename
+        profile_name: profile_name || req.user.profile_name
       }
     });
 
@@ -233,8 +233,8 @@ router.put('/profile', auth, validate('updateProfile'), async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        profilename: user.profilename,
-        createdat: user.createdat
+        profile_name: user.profile_name,
+        created_at: user.created_at
       }
     });
 

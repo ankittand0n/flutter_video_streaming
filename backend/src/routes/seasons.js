@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
     const where = {};
     if (tvSeriesId) where.tv_series_id = tvSeriesId;
 
-    const data = await prisma.season.findMany({ where, orderBy: { createdAt: 'desc' } });
+    const data = await prisma.season.findMany({ where, orderBy: { created_at: 'desc' } });
     res.json({ success: true, data });
   } catch (error) {
     console.error('Get seasons error:', error);

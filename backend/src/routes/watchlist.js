@@ -13,13 +13,13 @@ router.use(auth);
 // @access  Private
 router.post('/', validate('watchlistItem'), async (req, res) => {
   try {
-    const { contentid, contenttype } = req.body;
+    const { media_id, media_type } = req.body;
     
     // Check if item already exists in user's watchlist
     const existingItem = await Watchlist.findOne({
-      userid: req.user.id,
-      contentid,
-      contenttype
+      user_id: req.user.id,
+      media_id,
+      media_type
     });
 
     if (existingItem) {
@@ -30,9 +30,9 @@ router.post('/', validate('watchlistItem'), async (req, res) => {
 
     // Create new watchlist item - only include fields that exist in schema
     const watchlistItem = new Watchlist({
-      userid: req.user.id,
-      contentid: req.body.contentid,
-      contenttype: req.body.contenttype,
+      user_id: req.user.id,
+      media_id: req.body.media_id,
+      media_type: req.body.media_type,
       title: req.body.title,
       posterPath: req.body.posterPath // Will be mapped to posterpath in save()
     });
@@ -58,24 +58,24 @@ router.post('/', validate('watchlistItem'), async (req, res) => {
 // @access  Private
 router.get('/', validateQuery('pagination'), async (req, res) => {
   try {
-    const { page = 1, limit = 20, watched, priority, contenttype, sortBy = 'createdat', sortOrder = 'desc' } = req.query;
+    const { page = 1, limit = 20, watched, priority, media_type, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
     
     const skip = (page - 1) * limit;
     
     // Build query
-    const query = { userid: req.user.id };
+    const query = { user_id: req.user.id };
     if (watched !== undefined) query.watched = watched === 'true';
     if (priority) query.priority = priority;
-    if (contenttype) query.contenttype = contenttype;
+    if (media_type) query.media_type = media_type;
     
     // Map sortBy to actual field names
     const sortFieldMap = {
-      'addedAt': 'createdat',
-      'createdat': 'createdat',
+      'addedAt': 'created_at',
+      'created_at': 'created_at',
       'title': 'title',
-      'contenttype': 'contenttype'
+      'media_type': 'media_type'
     };
-    const actualSortField = sortFieldMap[sortBy] || 'createdat';
+    const actualSortField = sortFieldMap[sortBy] || 'created_at';
     
     // Get watchlist items with pagination and sorting
     query.limit = Number(limit);
@@ -83,10 +83,10 @@ router.get('/', validateQuery('pagination'), async (req, res) => {
     const watchlistItems = await Watchlist.find(query);
     
     // Get total count
-    const countQuery = { userid: req.user.id };
+    const countQuery = { user_id: req.user.id };
     if (watched !== undefined) countQuery.watched = watched === 'true';
     if (priority) countQuery.priority = priority;
-    if (contenttype) countQuery.contenttype = contenttype;
+    if (media_type) countQuery.media_type = media_type;
     const total = await Watchlist.countDocuments(countQuery);
     
     res.json({
@@ -152,14 +152,14 @@ router.put('/:id', async (req, res) => {
     const updateData = req.body;
     
     // Remove fields that shouldn't be updated
-    delete updateData.userid;
-    delete updateData.contentid;
-    delete updateData.contenttype;
+    delete updateData.user_id;
+    delete updateData.media_id;
+    delete updateData.media_type;
     
     const watchlistItem = await Watchlist.findOneAndUpdate(
       {
         _id: id,
-        userid: req.user.id
+        user_id: req.user.id
       },
       updateData,
       { new: true, runValidators: true }
@@ -194,7 +194,7 @@ router.delete('/:id', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOneAndDelete({
       _id: id,
-      userid: req.user.id
+      user_id: req.user.id
     });
 
     if (!watchlistItem) {
@@ -226,7 +226,7 @@ router.post('/:id/watch', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOne({
       _id: id,
-      userid: req.user.id
+      user_id: req.user.id
     });
 
     if (!watchlistItem) {
@@ -260,7 +260,7 @@ router.post('/:id/unwatch', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOne({
       _id: id,
-      userid: req.user.id
+      user_id: req.user.id
     });
 
     if (!watchlistItem) {
@@ -290,27 +290,27 @@ router.post('/:id/unwatch', async (req, res) => {
 // @access  Private
 router.get('/stats', async (req, res) => {
   try {
-    const userid = req.user.id;
+    const user_id = req.user.id;
     
     // Get total counts
-    const total = await Watchlist.countDocuments({ userid });
-    const watched = await Watchlist.countDocuments({ userid, watched: true });
-    const unwatched = await Watchlist.countDocuments({ userid, watched: false });
+    const total = await Watchlist.countDocuments({ user_id });
+    const watched = await Watchlist.countDocuments({ user_id, watched: true });
+    const unwatched = await Watchlist.countDocuments({ user_id, watched: false });
     
     // Get counts by content type
-    const movies = await Watchlist.countDocuments({ userid, contenttype: 'movie' });
-    const tvShows = await Watchlist.countDocuments({ userid, contenttype: 'tv' });
+    const movies = await Watchlist.countDocuments({ user_id, media_type: 'movie' });
+    const tvShows = await Watchlist.countDocuments({ user_id, media_type: 'tv' });
     
     // Get counts by priority
-    const highPriority = await Watchlist.countDocuments({ userid, priority: 'high' });
-    const mediumPriority = await Watchlist.countDocuments({ userid, priority: 'medium' });
-    const lowPriority = await Watchlist.countDocuments({ userid, priority: 'low' });
+    const highPriority = await Watchlist.countDocuments({ user_id, priority: 'high' });
+    const mediumPriority = await Watchlist.countDocuments({ user_id, priority: 'medium' });
+    const lowPriority = await Watchlist.countDocuments({ user_id, priority: 'low' });
     
     // Get recent additions
-    const recentAdditions = await Watchlist.find({ userid })
+    const recentAdditions = await Watchlist.find({ user_id })
       .sort({ addedAt: -1 })
       .limit(5)
-      .select('title contenttype addedAt');
+      .select('title media_type addedAt');
     
     res.json({
       success: true,
@@ -360,15 +360,15 @@ router.post('/bulk', async (req, res) => {
       try {
         // Check if item already exists
         const existingItem = await Watchlist.findOne({
-          userid: req.user.id,
-          contentid: item.contentid,
-          contenttype: item.contenttype
+          user_id: req.user.id,
+          media_id: item.media_id,
+          media_type: item.media_type
         });
 
         if (existingItem) {
           errors.push({
-            contentid: item.contentid,
-            contenttype: item.contenttype,
+            media_id: item.media_id,
+            media_type: item.media_type,
             error: 'Item already exists in watchlist'
           });
           continue;
@@ -376,7 +376,7 @@ router.post('/bulk', async (req, res) => {
 
         // Create new watchlist item
         const watchlistItem = new Watchlist({
-          userid: req.user.id,
+          user_id: req.user.id,
           ...item
         });
 
@@ -385,8 +385,8 @@ router.post('/bulk', async (req, res) => {
 
       } catch (error) {
         errors.push({
-          contentid: item.contentid,
-          contenttype: item.contenttype,
+          media_id: item.media_id,
+          media_type: item.media_type,
           error: error.message
         });
       }

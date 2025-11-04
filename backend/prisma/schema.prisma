@@ -9,127 +9,110 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model rating {
-  id          Int      @id @default(autoincrement())
-  userid      Int      @map("user_id")
-  contenttype String   @map("media_type")
-  contentid   String   @map("media_id")
-  rating      Decimal  @db.Decimal(3,1)
-  createdat   DateTime @default(now()) @map("created_at")
-  updatedat   DateTime @updatedAt @map("updated_at")
-  user        user     @relation(fields: [userid], references: [id], onDelete: Cascade, map: "Rating_userId_fkey")
-
-  @@index([userid], map: "Rating_userId_idx")
-  @@unique([userid, contenttype, contentid], map: "unique_user_rating")
+model user {
+  id             Int         @id @default(autoincrement())
+  email          String      @unique(map: "user_email_key")
+  password       String
+  username       String      @unique(map: "user_username_key")
+  profile_name   String
+  profile_avatar String?
+  is_active      Boolean     @default(true)
+  last_login     DateTime    @default(now())
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+  rating         rating[]
+  watchlist      watchlist[]
 }
 
-model user {
-  id                   Int         @id @default(autoincrement())
-  email                String      @unique(map: "User_email_key")
-  password             String
-  username             String      @unique(map: "User_username_key")
-  profilename          String
-  profileavatar        String?
-  profileage           Int?
-  profilelanguage      String?
-  profilematurity      String?
-  preferencesgenres    String?
-  preferencestypes     String?
-  preferenceslangs     String?
-  preferencessubtitles Boolean     @default(false)
-  subscriptionplan     String      @default("basic")
-  subscriptionstatus   String      @default("active")
-  subscriptionstart    DateTime    @default(now())
-  subscriptionend      DateTime?
-  watchhistory         String?
-  isactive             Boolean     @default(true)
-  lastlogin            DateTime    @default(now())
-  verificationtoken    String?
-  resetpasswordtoken   String?
-  resetpasswordexpires DateTime?
-  createdat            DateTime    @default(now())
-  updatedat            DateTime    @updatedAt
-  rating               rating[]
-  watchlist            watchlist[]
+model rating {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  media_type String
+  media_id   String
+  rating     Decimal  @db.Decimal(3, 1)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       user     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "rating_user_id_fkey")
+
+  @@unique([user_id, media_type, media_id], map: "rating_unique_user_rating")
+  @@index([user_id], map: "rating_user_id_idx")
 }
 
 model watchlist {
-  id           Int       @id @default(autoincrement())
-  userid       Int       @map("user_id")
-  contenttype  String    @map("media_type")
-  contentid    String    @map("media_id")
-  title        String
-  posterpath   String?   @map("poster_path")
-  createdat    DateTime  @default(now()) @map("created_at")
-  user         user      @relation(fields: [userid], references: [id], onDelete: Cascade, map: "Watchlist_userId_fkey")
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  media_type  String
+  media_id    String
+  title       String
+  poster_path String?
+  created_at  DateTime @default(now())
+  user        user     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "watchlist_user_id_fkey")
 
-  @@index([userid], map: "Watchlist_userId_idx")
-  @@unique([userid, contenttype, contentid], map: "unique_user_media")
+  @@unique([user_id, media_type, media_id], map: "watchlist_unique_user_media")
+  @@index([user_id], map: "watchlist_user_id_idx")
 }
 
-model Movie {
-  id           Int      @id @default(autoincrement())
-  title        String
-  overview     String?
-  release_date DateTime? @map("release_date")
-  vote_average Float?
-  poster_path  String?
+model movie {
+  id            Int       @id @default(autoincrement())
+  title         String
+  overview      String?
+  release_date  DateTime?
+  vote_average  Float?
+  poster_path   String?
   backdrop_path String?
-  genre_ids    String?
-  original_language String?
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime? @map("updated_at") @updatedAt
-  video        Boolean?
-  video_url    String?
-  trailer_url  String?
+  genre_ids     String?
+  video_url     String?
+  trailer_url   String?
+  trailer_urls  String[]  @default([])
+  created_at    DateTime  @default(now())
+  updated_at    DateTime? @updatedAt
 
   @@map("movies")
 }
 
-model TvSeries {
-  id           Int      @id @default(autoincrement())
-  name         String
-  overview     String?
-  first_air_date DateTime? @map("first_air_date")
-  last_air_date DateTime? @map("last_air_date")
-  vote_average Float?
-  poster_path  String?
-  backdrop_path String?
-  genre_ids    String?
-  original_language String?
-  number_of_seasons Int? @map("number_of_seasons")
-  number_of_episodes Int? @map("number_of_episodes")
-  status       String?
-  seasons      String?  // JSON string containing season data
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime? @map("updated_at") @updatedAt
-  video        Boolean?
-  video_url    String?
-  trailer_url  String?
+model tv_series {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  overview           String?
+  first_air_date     DateTime?
+  last_air_date      DateTime?
+  vote_average       Float?
+  poster_path        String?
+  backdrop_path      String?
+  genre_ids          String?
+  number_of_seasons  Int?
+  number_of_episodes Int?
+  status             String?
+  seasons            String?
+  video_url          String?
+  trailer_url        String?
+  trailer_urls       String[]  @default([])
+  created_at         DateTime  @default(now())
+  updated_at         DateTime? @updatedAt
 
   @@map("tv_series")
 }
 
-model Season {
-  id           Int      @id @default(autoincrement())
-  tv_series_id Int?     @map("tv_series_id")
+model season {
+  id            Int       @id @default(autoincrement())
+  tv_series_id  Int?
   season_number Int?
-  name         String?
-  overview     String?
-  poster_path  String?
-  air_date     DateTime?
-  episode_count Int? @map("episode_count")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime? @map("updated_at") @updatedAt
+  name          String?
+  overview      String?
+  poster_path   String?
+  air_date      DateTime?
+  episode_count Int?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime? @updatedAt
 
   @@map("seasons")
 }
 
-model Genre {
-  id        Int      @id @default(autoincrement())
-  name      String
-  type      String
-  createdAt DateTime @default(now()) @map("created_at")
+model genre {
+  id         Int      @id @default(autoincrement())
+  name       String
+  type       String
+  created_at DateTime @default(now())
 
   @@map("genres")
 }

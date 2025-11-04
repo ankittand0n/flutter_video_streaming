@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
     const cached = cache.get(cacheKey);
     if (cached) return res.json({ success: true, data: cached, cached: true });
 
-    const data = await prisma.genre.findMany({ orderBy: { createdAt: 'desc' }, take: 100 });
+    const data = await prisma.genre.findMany({ orderBy: { created_at: 'desc' }, take: 100 });
     cache.set(cacheKey, data, 1000 * 60 * 10); // cache 10 minutes
     res.json({ success: true, data });
   } catch (error) {

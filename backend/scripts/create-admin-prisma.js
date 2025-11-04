@@ -29,9 +29,7 @@ async function main() {
       email: email.toLowerCase(),
       username: username.toLowerCase(),
       password: password,
-      profilename: 'Admin',
-      subscriptionplan: 'premium',
-      subscriptionstatus: 'active'
+      profile_name: 'Admin'
     }
   })
 

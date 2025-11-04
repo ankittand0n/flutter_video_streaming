@@ -41,6 +41,21 @@ router.post('/', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name: '
       tvData.seasons = JSON.stringify(JSON.parse(tvData.seasons));
     }
 
+    // Parse trailer_urls array
+    if (tvData.trailer_urls) {
+      if (typeof tvData.trailer_urls === 'string') {
+        try {
+          tvData.trailer_urls = JSON.parse(tvData.trailer_urls);
+        } catch (e) {
+          tvData.trailer_urls = [tvData.trailer_urls];
+        }
+      }
+      // Filter out empty strings
+      if (Array.isArray(tvData.trailer_urls)) {
+        tvData.trailer_urls = tvData.trailer_urls.filter(url => url && url.trim());
+      }
+    }
+
     // Parse date fields
     if (tvData.first_air_date) {
       tvData.first_air_date = new Date(tvData.first_air_date);
@@ -75,7 +90,7 @@ router.post('/', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name: '
       }
     }
 
-    const tv = await prisma.tvSeries.create({ data: tvData });
+    const tv = await prisma.tv_series.create({ data: tvData });
     const transformedTV = addImageUrls(req, tv);
     res.status(201).json({ success: true, data: transformedTV });
   } catch (error) {
@@ -95,8 +110,8 @@ router.get('/', async (req, res) => {
     if (req.query.search) where.name = { contains: req.query.search };
 
     const [data, total] = await Promise.all([
-      prisma.tvSeries.findMany({ where, take: limit, skip, orderBy: { createdAt: 'desc' } }),
-      prisma.tvSeries.count({ where })
+      prisma.tv_series.findMany({ where, take: limit, skip, orderBy: { created_at: 'desc' } }),
+      prisma.tv_series.count({ where })
     ]);
 
     // Add full URLs to image paths
@@ -113,7 +128,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const tv = await prisma.tvSeries.findUnique({ where: { id } });
+    const tv = await prisma.tv_series.findUnique({ where: { id } });
     if (!tv) return res.status(404).json({ success: false, error: 'TV series not found' });
     
     // Add full URLs to image paths
@@ -150,6 +165,21 @@ router.put('/:id', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name:
       tvData.seasons = JSON.stringify(JSON.parse(tvData.seasons));
     }
 
+    // Parse trailer_urls array
+    if (tvData.trailer_urls) {
+      if (typeof tvData.trailer_urls === 'string') {
+        try {
+          tvData.trailer_urls = JSON.parse(tvData.trailer_urls);
+        } catch (e) {
+          tvData.trailer_urls = [tvData.trailer_urls];
+        }
+      }
+      // Filter out empty strings
+      if (Array.isArray(tvData.trailer_urls)) {
+        tvData.trailer_urls = tvData.trailer_urls.filter(url => url && url.trim());
+      }
+    }
+
     // Parse date fields
     if (tvData.first_air_date) {
       tvData.first_air_date = new Date(tvData.first_air_date);
@@ -184,7 +214,7 @@ router.put('/:id', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name:
       }
     }
 
-    const updated = await prisma.tvSeries.update({ where: { id }, data: tvData });
+    const updated = await prisma.tv_series.update({ where: { id }, data: tvData });
     const transformedTV = addImageUrls(req, updated);
     res.json({ success: true, data: transformedTV });
   } catch (error) {
@@ -208,7 +238,7 @@ router.put('/:id', auth, upload.fields([{ name: 'poster', maxCount: 1 }, { name:
 router.delete('/:id', auth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    await prisma.tvSeries.delete({ where: { id } });
+    await prisma.tv_series.delete({ where: { id } });
     res.json({ success: true, message: 'TV series deleted' });
   } catch (error) {
     console.error('Delete tv series error:', error);

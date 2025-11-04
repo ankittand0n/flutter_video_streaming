@@ -7,7 +7,7 @@ describe('Auth Flow - Register and Login', () => {
     email: 'testuser@example.com',
     username: 'testuser123',
     password: 'Test123!@#',
-    profilename: 'Test User'
+    profile_name: 'Test User'
   };
 
   // Clean up test user before and after tests
@@ -50,7 +50,7 @@ describe('Auth Flow - Register and Login', () => {
           email: testUser.email,
           username: testUser.username,
           password: testUser.password,
-          profilename: testUser.profilename
+          profile_name: testUser.profile_name
         })
         .expect(201);
 
@@ -58,7 +58,7 @@ describe('Auth Flow - Register and Login', () => {
       expect(response.body).toHaveProperty('message', 'User registered successfully');
       expect(response.body.user).toHaveProperty('email', testUser.email.toLowerCase());
       expect(response.body.user).toHaveProperty('username', testUser.username.toLowerCase());
-      expect(response.body.user).toHaveProperty('profilename', testUser.profilename);
+      expect(response.body.user).toHaveProperty('profile_name', testUser.profile_name);
       expect(response.body.user).not.toHaveProperty('password');
     });
 
@@ -69,7 +69,7 @@ describe('Auth Flow - Register and Login', () => {
           email: testUser.email,
           username: 'differentusername',
           password: testUser.password,
-          profilename: 'Different User'
+          profile_name: 'Different User'
         })
         .expect(400);
 
@@ -83,7 +83,7 @@ describe('Auth Flow - Register and Login', () => {
           email: 'different@example.com',
           username: testUser.username,
           password: testUser.password,
-          profilename: 'Different User'
+          profile_name: 'Different User'
         })
         .expect(400);
 
@@ -174,7 +174,7 @@ describe('Auth Flow - Register and Login', () => {
       email: '9876543210@phone.com', // Using phone as email
       username: '9876543210',
       password: 'Phone123!@#',
-      profilename: 'Phone User'
+      profile_name: 'Phone User'
     };
 
     beforeAll(async () => {

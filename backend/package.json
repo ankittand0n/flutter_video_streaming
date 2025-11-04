@@ -11,7 +11,14 @@
     "build:admin": "cd admin && vite build",
     "dev:admin": "cd admin && vite",
     "test": "jest",
+    "test:local": "jest",
+    "test:server": "cross-env TEST_EXTERNAL=true jest",
+    "test:api": "jest --testPathPattern=api.test.js",
+    "test:api:local": "jest --testPathPattern=api.test.js",
+    "test:api:server": "cross-env TEST_EXTERNAL=true jest --testPathPattern=api.test.js",
     "test:integration": "jest --testPathPattern=integration.test.js",
+    "test:integration:local": "jest --testPathPattern=integration.test.js",
+    "test:integration:server": "cross-env TEST_EXTERNAL=true jest --testPathPattern=integration.test.js",
     "test:numeric": "jest --testPathPattern=numeric-fields.test.js",
     "test:rating": "jest --testPathPattern=rating.test.js"
   },
@@ -25,6 +32,9 @@
   ],
   "author": "ankittand0n",
   "license": "MIT",
+  "config": {
+    "external_api_url": "https://admin.namkeentv.com"
+  },
   "dependencies": {
     "@prisma/client": "^5.12.0",
     "axios": "^1.5.0",
@@ -48,6 +58,7 @@
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
     "@vitejs/plugin-react": "^5.0.4",
+    "cross-env": "^10.1.0",
     "jest": "^29.6.2",
     "nodemon": "^3.0.1",
     "supertest": "^7.1.4",

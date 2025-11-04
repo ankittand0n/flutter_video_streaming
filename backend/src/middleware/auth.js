@@ -12,7 +12,7 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: decoded.userid } });
+    const user = await prisma.user.findUnique({ where: { id: decoded.user_id } });
     
     if (!user) {
       return res.status(401).json({ 
@@ -20,7 +20,7 @@ const auth = async (req, res, next) => {
       });
     }
 
-    if (!user.isactive) {
+    if (!user.is_active) {
       return res.status(401).json({ 
         error: 'Account is deactivated.' 
       });
@@ -54,11 +54,11 @@ const optionalAuth = async (req, res, next) => {
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await prisma.user.findUnique({ 
-        where: { id: decoded.userid },
-        select: { id: true, email: true, username: true, profilename: true, isactive: true }
+        where: { id: decoded.user_id },
+        select: { id: true, email: true, username: true, profile_name: true, is_active: true }
       });
       
-      if (user && user.isactive) {
+      if (user && user.is_active) {
         req.user = user;
         req.token = token;
       }
