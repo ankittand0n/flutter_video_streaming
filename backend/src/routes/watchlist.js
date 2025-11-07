@@ -2,6 +2,7 @@ const express = require('express');
 const { Watchlist } = require('../models');
 const { auth } = require('../middleware/auth');
 const { validate, validateQuery } = require('../middleware/validation');
+const prisma = require('../prisma/client');
 
 const router = express.Router();
 
@@ -106,6 +107,68 @@ router.get('/', validateQuery('pagination'), async (req, res) => {
     console.error('Get watchlist error:', error);
     res.status(500).json({
       error: 'Failed to get watchlist',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// @route   GET /api/watchlist/stats
+// @desc    Get watchlist statistics
+// @access  Private
+router.get('/stats', async (req, res) => {
+  try {
+    const user_id = req.user.id;
+    
+    // Get total counts
+    const total = await Watchlist.countDocuments({ user_id });
+    const watched = await Watchlist.countDocuments({ user_id, watched: true });
+    const unwatched = await Watchlist.countDocuments({ user_id, watched: false });
+    
+    // Get counts by content type
+    const movies = await Watchlist.countDocuments({ user_id, media_type: 'movie' });
+    const tvShows = await Watchlist.countDocuments({ user_id, media_type: 'tv' });
+    
+    // Get counts by priority
+    const highPriority = await Watchlist.countDocuments({ user_id, priority: 'high' });
+    const mediumPriority = await Watchlist.countDocuments({ user_id, priority: 'medium' });
+    const lowPriority = await Watchlist.countDocuments({ user_id, priority: 'low' });
+    
+    // Get recent additions (using Prisma directly)
+    const recentAdditions = await prisma.watchlist.findMany({
+      where: { user_id },
+      orderBy: { created_at: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        media_type: true,
+        created_at: true
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        total,
+        watched,
+        unwatched,
+        byType: {
+          movies,
+          tvShows
+        },
+        byPriority: {
+          high: highPriority,
+          medium: mediumPriority,
+          low: lowPriority
+        },
+        recentAdditions
+      }
+    });
+
+  } catch (error) {
+    console.error('Get watchlist stats error:', error);
+    res.status(500).json({
+      error: 'Failed to get watchlist statistics',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
@@ -222,7 +285,6 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/watch', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rating } = req.body;
     
     const watchlistItem = await Watchlist.findOne({
       _id: id,
@@ -235,7 +297,7 @@ router.post('/:id/watch', async (req, res) => {
       });
     }
 
-    await watchlistItem.markAsWatched(rating);
+    await watchlistItem.markAsWatched();
 
     res.json({
       message: 'Item marked as watched successfully',
@@ -280,61 +342,6 @@ router.post('/:id/unwatch', async (req, res) => {
     console.error('Mark as unwatched error:', error);
     res.status(500).json({
       error: 'Failed to mark item as unwatched',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-});
-
-// @route   GET /api/watchlist/stats
-// @desc    Get watchlist statistics
-// @access  Private
-router.get('/stats', async (req, res) => {
-  try {
-    const user_id = req.user.id;
-    
-    // Get total counts
-    const total = await Watchlist.countDocuments({ user_id });
-    const watched = await Watchlist.countDocuments({ user_id, watched: true });
-    const unwatched = await Watchlist.countDocuments({ user_id, watched: false });
-    
-    // Get counts by content type
-    const movies = await Watchlist.countDocuments({ user_id, media_type: 'movie' });
-    const tvShows = await Watchlist.countDocuments({ user_id, media_type: 'tv' });
-    
-    // Get counts by priority
-    const highPriority = await Watchlist.countDocuments({ user_id, priority: 'high' });
-    const mediumPriority = await Watchlist.countDocuments({ user_id, priority: 'medium' });
-    const lowPriority = await Watchlist.countDocuments({ user_id, priority: 'low' });
-    
-    // Get recent additions
-    const recentAdditions = await Watchlist.find({ user_id })
-      .sort({ addedAt: -1 })
-      .limit(5)
-      .select('title media_type addedAt');
-    
-    res.json({
-      success: true,
-      data: {
-        total,
-        watched,
-        unwatched,
-        byType: {
-          movies,
-          tvShows
-        },
-        byPriority: {
-          high: highPriority,
-          medium: mediumPriority,
-          low: lowPriority
-        },
-        recentAdditions
-      }
-    });
-
-  } catch (error) {
-    console.error('Get watchlist stats error:', error);
-    res.status(500).json({
-      error: 'Failed to get watchlist statistics',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }

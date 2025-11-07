@@ -39,14 +39,18 @@ model rating {
 }
 
 model watchlist {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   user_id     Int
   media_type  String
   media_id    String
   title       String
   poster_path String?
-  created_at  DateTime @default(now())
-  user        user     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "watchlist_user_id_fkey")
+  created_at  DateTime  @default(now())
+  watched     Boolean   @default(false)
+  watched_at  DateTime?
+  priority    String?
+  notes       String?
+  user        user      @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "watchlist_user_id_fkey")
 
   @@unique([user_id, media_type, media_id], map: "watchlist_unique_user_media")
   @@index([user_id], map: "watchlist_user_id_idx")

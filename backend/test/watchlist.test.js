@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../src/server');
 const prisma = require('../src/prisma/client');
+const { Watchlist } = require('../src/models');
 
 describe('Watchlist API', () => {
   let authToken;
@@ -415,6 +416,193 @@ describe('Watchlist API', () => {
 
       // Clean up
       await prisma.watchlist.delete({ where: { id: tempItem.body.data.id } });
+    });
+  });
+
+  describe('PUT /api/watchlist/:id', () => {
+    let itemToUpdate;
+
+    beforeAll(async () => {
+      // Create an item to update
+      const item = await prisma.watchlist.create({
+        data: {
+          user_id: userId,
+          media_id: 'update-test-456',
+          media_type: 'movie',
+          title: 'Item to Update',
+          poster_path: '/update-poster.jpg'
+        }
+      });
+      itemToUpdate = item;
+    });
+
+    it('should update a watchlist item', async () => {
+      const response = await request(app)
+        .put(`/api/watchlist/${itemToUpdate.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Updated Title',
+          priority: 'high',
+          notes: 'Updated notes'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Watchlist item updated successfully');
+      expect(response.body.data.title).toBe('Updated Title');
+    });
+
+    it('should return 404 for non-existent item', async () => {
+      const response = await request(app)
+        .put('/api/watchlist/999999')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ title: 'Updated' });
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .put(`/api/watchlist/${itemToUpdate.id}`)
+        .send({ title: 'Updated' });
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('POST /api/watchlist/:id/watch', () => {
+    let itemToWatch;
+
+    beforeAll(async () => {
+      // Create an item to mark as watched
+      const item = await prisma.watchlist.create({
+        data: {
+          user_id: userId,
+          media_id: 'watch-test-789',
+          media_type: 'movie',
+          title: 'Item to Watch',
+          poster_path: '/watch-poster.jpg'
+        }
+      });
+      itemToWatch = item;
+    });
+
+    it('should mark item as watched', async () => {
+      const response = await request(app)
+        .post(`/api/watchlist/${itemToWatch.id}/watch`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send();
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Item marked as watched successfully');
+    });
+
+    it('should mark as watched for TV show', async () => {
+      // Create another item
+      const item = await prisma.watchlist.create({
+        data: {
+          user_id: userId,
+          media_id: 'watch-test-tv',
+          media_type: 'tv',
+          title: 'Watch TV Show',
+          poster_path: '/watch-poster-2.jpg'
+        }
+      });
+
+      const response = await request(app)
+        .post(`/api/watchlist/${item.id}/watch`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send();
+
+      expect(response.status).toBe(200);
+
+      // Clean up
+      await prisma.watchlist.delete({ where: { id: item.id } });
+    });
+
+    it('should return 404 for non-existent item', async () => {
+      const response = await request(app)
+        .post('/api/watchlist/999999/watch')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .post(`/api/watchlist/${itemToWatch.id}/watch`);
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('POST /api/watchlist/:id/unwatch', () => {
+    let itemToUnwatch;
+
+    beforeAll(async () => {
+      // Create a watched item to unwatch
+      const item = await prisma.watchlist.create({
+        data: {
+          user_id: userId,
+          media_id: 'unwatch-test-101',
+          media_type: 'movie',
+          title: 'Item to Unwatch',
+          poster_path: '/unwatch-poster.jpg'
+        }
+      });
+      // Mark it as watched using the model
+      const watchlistItem = await Watchlist.findOne({ _id: item.id, user_id: userId });
+      await watchlistItem.markAsWatched();
+      itemToUnwatch = item;
+    });
+
+    it('should mark item as unwatched', async () => {
+      const response = await request(app)
+        .post(`/api/watchlist/${itemToUnwatch.id}/unwatch`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Item marked as unwatched successfully');
+    });
+
+    it('should return 404 for non-existent item', async () => {
+      const response = await request(app)
+        .post('/api/watchlist/999999/unwatch')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .post(`/api/watchlist/${itemToUnwatch.id}/unwatch`);
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/watchlist/stats', () => {
+    it('should get watchlist statistics', async () => {
+      const response = await request(app)
+        .get('/api/watchlist/stats')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('total');
+      expect(response.body.data).toHaveProperty('watched');
+      expect(response.body.data).toHaveProperty('unwatched');
+      expect(response.body.data).toHaveProperty('byType');
+      expect(response.body.data.byType).toHaveProperty('movies');
+      expect(response.body.data.byType).toHaveProperty('tvShows');
+      expect(response.body.data).toHaveProperty('byPriority');
+      expect(response.body.data).toHaveProperty('recentAdditions');
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/watchlist/stats');
+
+      expect(response.status).toBe(401);
     });
   });
 });

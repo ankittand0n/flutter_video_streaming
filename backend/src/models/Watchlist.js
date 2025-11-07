@@ -32,19 +32,27 @@ class WatchlistModel {
     return this;
   }
 
-  async markAsWatched(rating = null) {
-    this.watched = true;
-    this.watchedAt = new Date();
-    if (rating) this.rating = rating;
-    await prisma.watchlist.update({ where: { id: this.id }, data: { watched: this.watched, watchedAt: this.watchedAt, rating: this.rating } });
+  async markAsWatched() {
+    const updated = await prisma.watchlist.update({ 
+      where: { id: this.id }, 
+      data: { 
+        watched: true, 
+        watched_at: new Date() 
+      } 
+    });
+    Object.assign(this, updated);
     return this;
   }
 
   async markAsUnwatched() {
-    this.watched = false;
-    this.watchedAt = null;
-    this.rating = null;
-    await prisma.watchlist.update({ where: { id: this.id }, data: { watched: this.watched, watchedAt: this.watchedAt, rating: this.rating } });
+    const updated = await prisma.watchlist.update({ 
+      where: { id: this.id }, 
+      data: { 
+        watched: false, 
+        watched_at: null 
+      } 
+    });
+    Object.assign(this, updated);
     return this;
   }
 
