@@ -74,8 +74,10 @@ const schemas = {
       'any.required': 'Title is required'
     }),
     overview: Joi.string().max(1000).optional(),
-    posterPath: Joi.string().uri().optional(),
-    backdropPath: Joi.string().uri().optional(),
+    posterPath: Joi.string().optional(),
+    poster_path: Joi.string().optional(),
+    backdropPath: Joi.string().optional(),
+    backdrop_path: Joi.string().optional(),
     releaseDate: Joi.date().optional(),
     voteAverage: Joi.number().min(0).max(10).optional(),
     genreIds: Joi.array().items(Joi.number()).optional(),
@@ -108,8 +110,11 @@ const schemas = {
   pagination: Joi.object({
     page: Joi.number().min(1).default(1),
     limit: Joi.number().min(1).max(100).default(20),
-    sortBy: Joi.string().valid('createdAt', 'rating', 'title', 'releaseDate').default('createdAt'),
-    sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+    sortBy: Joi.string().valid('createdAt', 'rating', 'title', 'releaseDate', 'created_at', 'media_type').default('createdAt'),
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+    watched: Joi.string().valid('true', 'false').optional(),
+    priority: Joi.string().valid('low', 'medium', 'high').optional(),
+    media_type: Joi.string().valid('movie', 'tv').optional()
   }),
 
   // Content search

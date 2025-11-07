@@ -120,7 +120,7 @@ router.get('/:id', async (req, res) => {
     
     const watchlistItem = await Watchlist.findOne({
       _id: id,
-      userid: req.user.id
+      user_id: req.user.id
     });
 
     if (!watchlistItem) {
