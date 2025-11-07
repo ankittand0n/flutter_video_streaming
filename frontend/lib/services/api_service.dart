@@ -193,8 +193,8 @@ class ApiService {
       print('Adding to watchlist - contentId: $contentId, type: $contentType');
 
       final requestBody = {
-        'contentid': contentId,
-        'contenttype': contentType,
+        'media_id': contentId,
+        'media_type': contentType,
         'title': title,
         if (overview != null && overview.isNotEmpty) 'overview': overview,
         if (posterPath != null && posterPath.isNotEmpty)
@@ -291,8 +291,8 @@ class ApiService {
           'Rating content - contentId: $contentId, type: $contentType, rating: $rating');
 
       final requestBody = {
-        'contentid': contentId,
-        'contenttype': contentType,
+        'media_id': contentId,
+        'media_type': contentType,
         'rating': rating,
         if (review != null && review.isNotEmpty) 'review': review,
         if (title != null && title.isNotEmpty) 'title': title,

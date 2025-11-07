@@ -135,6 +135,39 @@ class CastService {
     }
   }
 
+  /// Show the cast dialog to select a device
+  Future<void> showCastDialog() async {
+    if (!kIsWeb || !_isInitialized) return;
+
+    const code = '''
+      (function() {
+        try {
+          const context = cast.framework.CastContext.getInstance();
+          context.requestSession();
+        } catch (e) {
+          console.error('Error showing cast dialog:', e);
+        }
+      })();
+    ''';
+
+    try {
+      js.globalContext.callMethod('eval'.toJS, code.toJS);
+    } catch (e) {
+      debugPrint('Error showing cast dialog: $e');
+    }
+  }
+
+  /// Cast media with additional parameters (wrapper around loadMedia)
+  Future<void> castMedia({
+    required String mediaUrl,
+    required String title,
+    String? description,
+    String? imageUrl,
+    String? contentType,
+  }) async {
+    await loadMedia(mediaUrl, title, imageUrl: imageUrl);
+  }
+
   /// Start casting a media URL
   Future<void> loadMedia(String mediaUrl, String title,
       {String? imageUrl}) async {

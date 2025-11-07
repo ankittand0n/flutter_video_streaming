@@ -178,13 +178,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (context, index) {
                         final item = _myList[index];
                         // Convert watchlist item to Movie object with minimal required fields
+                        // Backend returns media_id and poster_path fields
                         final movie = Movie(
-                          id: int.tryParse(item['contentid'] ?? '0') ?? 0,
+                          id: int.tryParse(item['media_id'] ?? '0') ?? 0,
                           title: item['title'] ?? '',
                           overview: '',
                           releaseDate: '',
                           voteAverage: 0.0,
-                          posterPath: item['posterpath'] ?? '',
+                          posterPath: item['poster_path'] ?? '',
                           backdropPath: '',
                           genreIds: [],
                           originalLanguage: '',

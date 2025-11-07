@@ -78,7 +78,7 @@ class AuthService {
             ? identifier
             : '$identifier@phone.temp', // Temporary email for phone users
         'password': password,
-        'profilename': name, // Use full UUID as profile name
+        'profile_name': name, // Use full UUID as profile name
       };
 
       print('Registration request body: ${json.encode(body)}');

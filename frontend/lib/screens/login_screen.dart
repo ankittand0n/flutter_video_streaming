@@ -3,6 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
 
+enum LoginMode {
+  email,
+  username,
+  phone,
+}
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -17,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _isEmailMode = true;
+  LoginMode _loginMode = LoginMode.email;
 
   @override
   void dispose() {
@@ -28,14 +34,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validateIdentifier(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please enter your ${_isEmailMode ? 'email' : 'phone number'}';
+      return 'Please enter your ${_loginMode == LoginMode.email ? 'email' : _loginMode == LoginMode.username ? 'username' : 'phone number'}';
     }
 
-    if (_isEmailMode) {
+    if (_loginMode == LoginMode.email) {
       // Email validation
       final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
       if (!emailRegex.hasMatch(value)) {
         return 'Please enter a valid email address';
+      }
+    } else if (_loginMode == LoginMode.username) {
+      // Username validation
+      if (value.length < 3) {
+        return 'Username must be at least 3 characters';
+      }
+      final usernameRegex = RegExp(r'^[a-zA-Z0-9]+$');
+      if (!usernameRegex.hasMatch(value)) {
+        return 'Username can only contain letters and numbers';
       }
     } else {
       // Phone validation (10 digits only)
@@ -70,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.login(
         identifier: _identifierController.text.trim(),
         password: _passwordController.text,
-        isEmail: _isEmailMode,
+        isEmail: _loginMode == LoginMode.email,
       );
 
       if (mounted) {
@@ -112,9 +127,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _toggleMode() {
+  void _setLoginMode(LoginMode mode) {
     setState(() {
-      _isEmailMode = !_isEmailMode;
+      _loginMode = mode;
       _identifierController.clear();
     });
   }
@@ -165,32 +180,63 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextButton(
-                        onPressed: _isEmailMode ? null : _toggleMode,
+                        onPressed: _loginMode == LoginMode.email
+                            ? null
+                            : () => _setLoginMode(LoginMode.email),
                         child: Text(
                           'Email',
                           style: TextStyle(
-                            color: _isEmailMode ? Colors.red : Colors.white70,
+                            color: _loginMode == LoginMode.email
+                                ? Colors.red
+                                : Colors.white70,
                             fontSize: 16,
-                            fontWeight: _isEmailMode
+                            fontWeight: _loginMode == LoginMode.email
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 8),
                       const Text(
                         '|',
                         style: TextStyle(color: Colors.white70),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 8),
                       TextButton(
-                        onPressed: _isEmailMode ? _toggleMode : null,
+                        onPressed: _loginMode == LoginMode.username
+                            ? null
+                            : () => _setLoginMode(LoginMode.username),
+                        child: Text(
+                          'Username',
+                          style: TextStyle(
+                            color: _loginMode == LoginMode.username
+                                ? Colors.red
+                                : Colors.white70,
+                            fontSize: 16,
+                            fontWeight: _loginMode == LoginMode.username
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '|',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: _loginMode == LoginMode.phone
+                            ? null
+                            : () => _setLoginMode(LoginMode.phone),
                         child: Text(
                           'Phone',
                           style: TextStyle(
-                            color: !_isEmailMode ? Colors.red : Colors.white70,
+                            color: _loginMode == LoginMode.phone
+                                ? Colors.red
+                                : Colors.white70,
                             fontSize: 16,
-                            fontWeight: !_isEmailMode
+                            fontWeight: _loginMode == LoginMode.phone
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                           ),
@@ -200,24 +246,34 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Email/Phone Input
+                  // Email/Username/Phone Input
                   TextFormField(
                     controller: _identifierController,
-                    keyboardType: _isEmailMode
-                        ? TextInputType.emailAddress
-                        : TextInputType.phone,
-                    inputFormatters: _isEmailMode
-                        ? []
-                        : [
+                    keyboardType: _loginMode == LoginMode.phone
+                        ? TextInputType.phone
+                        : _loginMode == LoginMode.email
+                            ? TextInputType.emailAddress
+                            : TextInputType.text,
+                    inputFormatters: _loginMode == LoginMode.phone
+                        ? [
                             FilteringTextInputFormatter.digitsOnly,
                             LengthLimitingTextInputFormatter(10),
-                          ],
+                          ]
+                        : [],
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: _isEmailMode ? 'Email' : 'Phone Number',
+                      labelText: _loginMode == LoginMode.email
+                          ? 'Email'
+                          : _loginMode == LoginMode.username
+                              ? 'Username'
+                              : 'Phone Number',
                       labelStyle: const TextStyle(color: Colors.white70),
                       prefixIcon: Icon(
-                        _isEmailMode ? Icons.email : Icons.phone,
+                        _loginMode == LoginMode.email
+                            ? Icons.email
+                            : _loginMode == LoginMode.username
+                                ? Icons.person
+                                : Icons.phone,
                         color: Colors.white70,
                       ),
                       filled: true,

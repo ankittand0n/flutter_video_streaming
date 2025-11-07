@@ -66,10 +66,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
         print('Watchlist items: $watchlistItems');
         print('Looking for movie ID: ${widget.movie.id}');
 
-        // Try both contentId and contentid (lowercase) as the backend might use either
+        // Backend returns media_id field
         final isInList = watchlistItems.any((item) {
-          final itemId =
-              (item['contentId'] ?? item['contentid'] ?? item['id']).toString();
+          final itemId = (item['media_id'] ?? item['id']).toString();
           print('Comparing $itemId with ${widget.movie.id}');
           return itemId == widget.movie.id.toString();
         });
