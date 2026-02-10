@@ -204,4 +204,86 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// Get popular movies (sorted by created_at descending - newest first)
+router.get('/popular', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      prisma.movie.findMany({
+        take: limit,
+        skip,
+        orderBy: { created_at: 'desc' },
+        where: {
+          vote_average: { not: null }
+        }
+      }),
+      prisma.movie.count({
+        where: {
+          vote_average: { not: null }
+        }
+      })
+    ]);
+
+    const transformedData = data.map(item => addImageUrls(req, item));
+
+    res.json({
+      success: true,
+      data: transformedData,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get popular movies error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch popular movies' });
+  }
+});
+
+// Get top rated movies (sorted by vote_average descending - highest rated first)
+router.get('/top-rated', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      prisma.movie.findMany({
+        take: limit,
+        skip,
+        where: {
+          vote_average: { not: null }
+        },
+        orderBy: { vote_average: 'desc' }
+      }),
+      prisma.movie.count({
+        where: {
+          vote_average: { not: null }
+        }
+      })
+    ]);
+
+    const transformedData = data.map(item => addImageUrls(req, item));
+
+    res.json({
+      success: true,
+      data: transformedData,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get top rated movies error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch top rated movies' });
+  }
+});
+
 module.exports = router;

@@ -1,13 +1,39 @@
 // Mobile/native implementation - no JS interop needed
+import 'package:flutter/foundation.dart';
 
 class AppConfig {
-  // For mobile, use production URLs directly
+  // Check if running in debug mode
+  static const bool isDevelopment = kDebugMode;
+  
+  // Development URLs (local backend - use your computer's IP or localhost)
+  static const String _devApiBaseUrl = 'http://10.0.2.2:3000/api'; // Android emulator
+  // For iOS simulator, use: 'http://localhost:3000/api'
+  // For physical device, use your computer's local IP: 'http://192.168.x.x:3000/api'
+  static const String _devStorageBaseUrl = 'http://10.0.2.2:3000/storage';
+  
+  // Production URLs
+  static const String _prodApiBaseUrl = 'https://admin.namkeentv.com/api';
+  static const String _prodStorageBaseUrl = 'https://storage.googleapis.com/namkeen-tv';
+  
+  // Get API base URL based on environment
   static String get apiBaseUrl {
-    return 'https://admin.namkeentv.com/api';
+    // Allow override via dart-define
+    const defineApiUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (defineApiUrl.isNotEmpty) {
+      return defineApiUrl;
+    }
+    
+    return isDevelopment ? _devApiBaseUrl : _prodApiBaseUrl;
   }
 
   static String get storageBaseUrl {
-    return 'https://storage.googleapis.com/namkeen-tv';
+    // Allow override via dart-define
+    const defineStorageUrl = String.fromEnvironment('STORAGE_BASE_URL', defaultValue: '');
+    if (defineStorageUrl.isNotEmpty) {
+      return defineStorageUrl;
+    }
+    
+    return isDevelopment ? _devStorageBaseUrl : _prodStorageBaseUrl;
   }
 
   // Derived configuration
@@ -17,8 +43,7 @@ class AppConfig {
   static const String appName = 'Namkeen TV';
   static const String appVersion = '1.0.0';
 
-  // Development Configuration
-  static const bool isDevelopment = false;
+  // API Configuration
   static const int apiTimeout = 30; // seconds
 
   // Feature Flags

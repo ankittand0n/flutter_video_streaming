@@ -17,13 +17,17 @@ class ApiService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      );
+      ).timeout(Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data']);
+        if (data != null && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+        return [];
       } else {
-        throw Exception('Failed to load movies: ${response.statusCode}');
+        print('Failed to load movies: ${response.statusCode} - ${response.body}');
+        return [];
       }
     } catch (e) {
       print('Error fetching movies: $e');
@@ -78,14 +82,17 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$baseUrl/movies/popular?page=$page&limit=$limit'),
         headers: {'Content-Type': 'application/json'},
-      );
+      ).timeout(Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data']);
+        if (data != null && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+        return [];
       } else {
-        throw Exception(
-            'Failed to load popular movies: ${response.statusCode}');
+        print('Failed to load popular movies: ${response.statusCode} - ${response.body}');
+        return [];
       }
     } catch (e) {
       print('Error fetching popular movies: $e');
@@ -101,14 +108,17 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$baseUrl/movies/top-rated?page=$page&limit=$limit'),
         headers: {'Content-Type': 'application/json'},
-      );
+      ).timeout(Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['data']);
+        if (data != null && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+        return [];
       } else {
-        throw Exception(
-            'Failed to load top rated movies: ${response.statusCode}');
+        print('Failed to load top rated movies: ${response.statusCode} - ${response.body}');
+        return [];
       }
     } catch (e) {
       print('Error fetching top rated movies: $e');

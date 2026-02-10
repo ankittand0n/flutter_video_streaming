@@ -36,6 +36,52 @@ class Movie {
 
   factory Movie.fromJson(Map<String, dynamic> json,
       {String? medialType, bool details = false}) {
+    // Safely handle genre_ids which could be String (JSON) or List
+    List<int> genreIds = [];
+    try {
+      if (json['genre_ids'] != null) {
+        if (json['genre_ids'] is String) {
+          final genreString = json['genre_ids'] as String;
+          // Skip empty or whitespace-only strings
+          if (genreString.trim().isEmpty) {
+            genreIds = [];
+          } else {
+            // Try to parse as JSON
+            try {
+              final decoded = jsonDecode(genreString);
+              if (decoded is List) {
+                genreIds = List<int>.from(
+                    decoded.map((x) => x is int ? x : (x is String ? int.tryParse(x) ?? 0 : 0)));
+              } else {
+                genreIds = [];
+              }
+            } catch (e) {
+              // If JSON parsing fails, try to extract numbers from the string
+              print('Warning: Invalid JSON in genre_ids: "$genreString" - $e');
+              genreIds = [];
+            }
+          }
+        } else if (json['genre_ids'] is List) {
+          genreIds = List<int>.from(json['genre_ids'].map((x) => 
+            x is int ? x : (x is String ? int.tryParse(x) ?? 0 : 0)));
+        }
+      }
+    } catch (e) {
+      print('Error parsing genre_ids: $e');
+      genreIds = [];
+    }
+
+    // Safely parse dates
+    DateTime parseDate(String? dateString, DateTime defaultDate) {
+      if (dateString == null || dateString.isEmpty) return defaultDate;
+      try {
+        return DateTime.parse(dateString);
+      } catch (e) {
+        print('Error parsing date: $e');
+        return defaultDate;
+      }
+    }
+
     return Movie(
       id: json['id'] ?? 0,
       title: json['title'] ??
@@ -43,22 +89,17 @@ class Movie {
           '', // Support both 'title' and 'name'
       overview: json['overview'] ?? '',
       releaseDate: json['release_date'] ?? json['first_air_date'] ?? '',
-      voteAverage: (json['vote_average'] ?? 0.0).toDouble(),
+      voteAverage: (json['vote_average'] != null) 
+          ? (json['vote_average'] is num ? json['vote_average'].toDouble() : 0.0)
+          : 0.0,
       posterPath: json['poster_path'] ?? '',
       backdropPath: json['backdrop_path'] ?? '',
-      genreIds: json['genre_ids'] != null
-          ? (json['genre_ids'] is String
-              ? List<int>.from(jsonDecode(json['genre_ids'] as String)
-                  .map((x) => x is String ? x.hashCode % 1000 : x))
-              : List<int>.from(json['genre_ids']))
-          : [],
+      genreIds: genreIds,
       originalLanguage: json['original_language'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ??
-          json['created_at'] ??
-          DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ??
-          json['updated_at'] ??
-          DateTime.now().toIso8601String()),
+      createdAt: parseDate(
+          json['createdAt'] ?? json['created_at'], DateTime.now()),
+      updatedAt: parseDate(
+          json['updatedAt'] ?? json['updated_at'], DateTime.now()),
       video: json['video'] ?? false,
       videoUrl: json['video_url'],
       trailerUrl: json['trailer_url'],

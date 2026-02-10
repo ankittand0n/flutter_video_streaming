@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-# Default values
-API_BASE_URL=${API_BASE_URL:-"http://localhost:3000"}
+# Default values - production URLs
+API_BASE_URL=${API_BASE_URL:-"https://admin.namkeentv.com/api"}
 STORAGE_BASE_URL=${STORAGE_BASE_URL:-"https://storage.googleapis.com/namkeen-tv"}
 
 # Create config.js with environment variables

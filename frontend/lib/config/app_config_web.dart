@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import 'package:flutter/foundation.dart';
 
 // External JavaScript interop for reading window.ENV
 @JS('ENV.apiBaseUrl')
@@ -8,8 +9,25 @@ external String? get _apiBaseUrl;
 external String? get _storageBaseUrl;
 
 class AppConfig {
+  // Check if running in debug mode
+  static const bool isDevelopment = kDebugMode;
+  
+  // Development URLs (local backend)
+  static const String _devApiBaseUrl = 'http://localhost:3000/api';
+  static const String _devStorageBaseUrl = 'http://localhost:3000/storage';
+  
+  // Production URLs
+  static const String _prodApiBaseUrl = 'https://admin.namkeentv.com/api';
+  static const String _prodStorageBaseUrl = 'https://storage.googleapis.com/namkeen-tv';
+  
   // Runtime environment configuration (injected by Docker)
   static String get apiBaseUrl {
+    // Allow override via dart-define
+    const defineApiUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (defineApiUrl.isNotEmpty) {
+      return defineApiUrl;
+    }
+    
     try {
       // Try to read from window.ENV (injected by Docker at runtime)
       final url = _apiBaseUrl;
@@ -19,11 +37,18 @@ class AppConfig {
     } catch (e) {
       print('Failed to read runtime config: $e');
     }
-    // Fallback to default
-    return 'https://admin.namkeentv.com/api';
+    
+    // Fallback to environment-specific default
+    return isDevelopment ? _devApiBaseUrl : _prodApiBaseUrl;
   }
 
   static String get storageBaseUrl {
+    // Allow override via dart-define
+    const defineStorageUrl = String.fromEnvironment('STORAGE_BASE_URL', defaultValue: '');
+    if (defineStorageUrl.isNotEmpty) {
+      return defineStorageUrl;
+    }
+    
     try {
       final url = _storageBaseUrl;
       if (url != null && url.isNotEmpty) {
@@ -32,8 +57,9 @@ class AppConfig {
     } catch (e) {
       print('Failed to read runtime config: $e');
     }
-    // Fallback to default
-    return 'https://storage.googleapis.com/namkeen-tv';
+    
+    // Fallback to environment-specific default
+    return isDevelopment ? _devStorageBaseUrl : _prodStorageBaseUrl;
   }
 
   // Derived configuration
@@ -43,8 +69,7 @@ class AppConfig {
   static const String appName = 'Namkeen TV';
   static const String appVersion = '1.0.0';
 
-  // Development Configuration
-  static const bool isDevelopment = false;
+  // API Configuration
   static const int apiTimeout = 30; // seconds
 
   // Feature Flags
