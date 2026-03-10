@@ -31,14 +31,7 @@ class MovieDetailsScreen extends StatefulWidget {
   State<MovieDetailsScreen> createState() => _MovieDetailsScreenState();
 }
 
-class _MovieDetailsScreenState extends State<MovieDetailsScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController =
-      TabController(length: widget.movie.type == 'tv' ? 3 : 2, vsync: this)
-        ..addListener(() {
-          context.read<MovieDetailsTabCubit>().setTab(_tabController.index);
-        });
-
+class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   bool _showTrailerPlayer = false;
   bool _isInWatchlist = false;
   double? _userRating;
@@ -52,7 +45,6 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
           .read<TvShowSeasonSelectorBloc>()
           .add(SelectTvShowSeason(widget.movie.id, 1));
     }
-    context.read<MovieDetailsTabCubit>().setTab(_tabController.index);
     _loadUserData();
   }
 
@@ -379,60 +371,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
               ],
             ),
           ),
-          const Text(
-            'Fast Laughs',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
-          ),
-          SizedBox(
-            height: 180.0,
-            child: Builder(builder: (context) {
-              final movies =
-                  context.watch<TrendingTvShowListWeeklyBloc>().state;
-
-              if (movies is TrendingTvShowLisWeekly) {
-                return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: movies.list.length,
-                    itemBuilder: (context, index) {
-                      final movie = movies.list[index];
-                      return MovieBox(
-                        key: ValueKey(movie.id),
-                        movie: movie,
-                        laughs: 100,
-                      );
-                    });
-              }
-              return Container();
-            }),
-          ),
-          const Divider(
-            height: 1.0,
-          ),
-          TabBar(
-              controller: _tabController,
-              indicator: const BoxDecoration(
-                border: Border(
-                    top: BorderSide(
-                  color: redColor,
-                  width: 4.0,
-                )),
-              ),
-              tabs: [
-                if (movie.type == 'tv')
-                  const Tab(
-                    text: 'Episodes',
-                  ),
-                const Tab(
-                  text: 'Trailers & More',
-                ),
-                const Tab(
-                  text: 'More Like This',
-                ),
-              ]),
         ])),
-        Builder(builder: (context) {
-          final tabIndex = context.watch<MovieDetailsTabCubit>().state;
-          if (tabIndex == 0 && movie.type == 'tv') {
+        if (movie.type == 'tv')
+          Builder(builder: (context) {
             final state = context.watch<TvShowSeasonSelectorBloc>().state;
             if (state is SelectedTvShowSeason) {
               return SliverList(
@@ -440,7 +381,6 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                   if (index == 0) {
                     return _seasonDropdown(movie, state.season.seasonNumber);
                   }
-
                   return EpisodeBox(
                       episode: state.season.episodes[index - 1],
                       fill: true,
@@ -448,44 +388,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen>
                 }, childCount: state.season.episodes.length + 1),
               );
             }
-          } else if (tabIndex == 1 && movie.type == 'tv' ||
-              tabIndex == 0 && movie.type == 'movie') {
-            final movies = context.watch<TrendingMovieListDailyBloc>().state;
-
-            if (movies is TrendingMovieListDaily) {
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final movie = movies.list[index];
-                  return MovieTrailer(
-                      key: ValueKey(movie.id),
-                      movie: movie,
-                      fill: true,
-                      padding: EdgeInsets.zero);
-                }, childCount: movies.list.length),
-              );
-            }
-          } else {
-            final movies = context.watch<TrendingTvShowListDailyBloc>().state;
-            if (movies is TrendingTvShowListDaily) {
-              return SliverGrid(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final movie = movies.list[index];
-                  return MovieBox(
-                      key: ValueKey(movie.id),
-                      movie: movie,
-                      fill: true,
-                      padding: EdgeInsets.zero);
-                }, childCount: min(12, movies.list.length)),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 2 / 3,
-                    mainAxisSpacing: 8.0,
-                    crossAxisSpacing: 8.0),
-              );
-            }
-          }
-          return const SliverToBoxAdapter();
-        })
+            return const SliverToBoxAdapter();
+          })
       ],
     );
   }

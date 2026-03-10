@@ -1,19 +1,27 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
+/// HLS quality level parsed from a master playlist.
+class _HlsQuality {
+  final String label;  // e.g. "1080p"
+  final String url;    // absolute variant-stream URL
+  final int height;
+
+  const _HlsQuality({required this.label, required this.url, required this.height});
+}
+
+/// Same public interface as before — all callers are unchanged.
 class MediaKitVideoPlayer extends StatefulWidget {
   final String videoUrl;
   final String? trailerUrl;
   final bool isTrailer;
   final String title;
-  final String? videoId; // Unique identifier for saving progress
+  final String? videoId;
   final bool autoPlay;
   final bool autoFullScreen;
   final Duration? startAt;
@@ -39,79 +47,53 @@ class MediaKitVideoPlayer extends StatefulWidget {
 }
 
 class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
-  late final Player _player;
-  late final VideoController _videoController;
+  VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _hasError = false;
   String? _errorMessage;
-  late bool
-      _isFullScreen; // Will be initialized in initState based on autoFullScreen
+  bool _isFullScreen = false;
   bool _showControls = true;
-  List<VideoTrack> _videoTracks = [];
-  VideoTrack _currentVideoTrack = VideoTrack.auto();
+  Timer? _hideControlsTimer;
+  Timer? _savePositionTimer;
+  bool _endedFired = false;
 
-  // Stream subscriptions to be canceled on dispose
-  StreamSubscription? _positionSubscription;
-  StreamSubscription? _errorSubscription;
-  StreamSubscription? _tracksSubscription;
-  StreamSubscription? _trackSubscription;
+  // Slider drag state
+  bool _isDraggingSlider = false;
+  double _dragSliderValue = 0.0;
 
-  // Web-specific HLS quality levels (kept for compatibility but not used on mobile)
-  List<Map<String, dynamic>> _webQualityLevels = [];
-  int _currentWebQualityIndex = -1; // -1 means auto
+  // HLS quality levels (populated on first load of a master playlist)
+  List<_HlsQuality> _qualities = [];
+  // -1 = Auto (master playlist), otherwise index into _qualities
+  int _selectedQualityIndex = -1;
+  // The master playlist URL (always kept so Auto can restore it)
+  String? _masterUrl;
 
-  @override
-  void initState() {
-    super.initState();
+  // ─── SharedPreferences helpers ───────────────────────────────────────────
 
-    // Initialize fullscreen state immediately if autoFullScreen is enabled
-    // This prevents the AppBar from showing on first build
-    _isFullScreen = widget.autoFullScreen;
-
-    _initializePlayer();
-    WakelockPlus.enable(); // Keep screen awake during video playback
-
-    // Auto enter fullscreen if enabled
-    if (widget.autoFullScreen) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _enterFullScreen();
-      });
-    }
-  }
-
-  // Get saved playback position from SharedPreferences
   Future<Duration?> _getSavedPosition() async {
     if (widget.videoId == null) return null;
-
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedSeconds = prefs.getInt('video_position_${widget.videoId}');
-      if (savedSeconds != null && savedSeconds > 0) {
-        return Duration(seconds: savedSeconds);
-      }
+      final s = prefs.getInt('video_position_${widget.videoId}');
+      if (s != null && s > 0) return Duration(seconds: s);
     } catch (e) {
       debugPrint('Error loading saved position: $e');
     }
     return null;
   }
 
-  // Save current playback position to SharedPreferences
   Future<void> _savePosition(Duration position) async {
     if (widget.videoId == null) return;
-
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-          'video_position_${widget.videoId}', position.inSeconds);
+      await prefs.setInt('video_position_${widget.videoId}', position.inSeconds);
     } catch (e) {
       debugPrint('Error saving position: $e');
     }
   }
 
-  // Clear saved position (called when video ends or user finishes watching)
   Future<void> _clearSavedPosition() async {
     if (widget.videoId == null) return;
-
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('video_position_${widget.videoId}');
@@ -120,428 +102,297 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     }
   }
 
-  // Format duration for display (e.g., "1:23:45" or "12:34")
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final seconds = duration.inSeconds.remainder(60);
-
-    if (hours > 0) {
-      return '$hours:${twoDigits(minutes)}:${twoDigits(seconds)}';
-    }
-    return '$minutes:${twoDigits(seconds)}';
+  String _formatDuration(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60);
+    return h > 0 ? '$h:${two(m)}:${two(s)}' : '${two(m)}:${two(s)}';
   }
 
-  Future<void> _initializePlayer() async {
+  // ─── HLS manifest parser ─────────────────────────────────────────────────
+
+  Future<List<_HlsQuality>> _parseHlsQualities(String masterUrl) async {
     try {
-      final videoUrl = widget.isTrailer && widget.trailerUrl != null
-          ? widget.trailerUrl!
-          : widget.videoUrl;
+      final response = await http.get(Uri.parse(masterUrl))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
 
-      // Create Player instance
-      _player = Player();
+      final lines = response.body.split('\n');
+      final List<_HlsQuality> results = [];
 
-      // Create VideoController
-      _videoController = VideoController(
-        _player,
-        configuration: const VideoControllerConfiguration(
-          enableHardwareAcceleration: true,
-        ),
-      );
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i].trim();
+        if (!line.startsWith('#EXT-X-STREAM-INF:')) continue;
 
-      // Open media (without unsafe headers for web compatibility)
-      await _player.open(
-        Media(videoUrl),
-        play: widget.autoPlay,
-      );
+        final resMatch = RegExp(r'RESOLUTION=\d+x(\d+)').firstMatch(line);
+        if (resMatch == null || i + 1 >= lines.length) continue;
 
-      // For web, parse HLS playlist to get quality levels
-      if (kIsWeb && videoUrl.contains('.m3u8')) {
-        await _fetchWebQualityLevels(videoUrl);
+        final height = int.parse(resMatch.group(1)!);
+        final variantLine = lines[i + 1].trim();
+        if (variantLine.isEmpty || variantLine.startsWith('#')) continue;
+
+        final variantUrl = variantLine.startsWith('http')
+            ? variantLine
+            : '${masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1)}$variantLine';
+
+        results.add(_HlsQuality(
+          label: '${height}p',
+          url: variantUrl,
+          height: height,
+        ));
       }
 
-      // Load saved position or use startAt parameter
-      Duration? resumePosition;
-      if (widget.startAt != null) {
-        resumePosition = widget.startAt;
-      } else {
-        resumePosition = await _getSavedPosition();
+      results.sort((a, b) => b.height.compareTo(a.height)); // highest first
+      return results;
+    } catch (e) {
+      debugPrint('HLS parse error: $e');
+      return [];
+    }
+  }
+
+  // ─── Player lifecycle ─────────────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    _isFullScreen = widget.autoFullScreen;
+    WakelockPlus.enable();
+    _initializePlayer();
+    if (widget.autoFullScreen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _enterFullScreen());
+    }
+  }
+
+  /// [url] defaults to the widget's videoUrl.
+  /// [resumeAt] overrides the saved/startAt position (used when switching quality).
+  Future<void> _initializePlayer({String? url, Duration? resumeAt}) async {
+    final videoUrl = url ??
+        (widget.isTrailer && widget.trailerUrl != null
+            ? widget.trailerUrl!
+            : widget.videoUrl);
+
+    try {
+      // Tear down existing controller if any
+      _savePositionTimer?.cancel();
+      final oldController = _controller;
+      if (oldController != null) {
+        oldController.removeListener(_playerListener);
+        await oldController.dispose();
+        _controller = null;
       }
 
-      // Start at specific time if provided or from saved position
-      if (resumePosition != null && resumePosition.inSeconds > 0) {
-        await _player.seek(resumePosition);
-      }
-
-      // Listen for position changes
-      _positionSubscription = _player.stream.position.listen((position) {
-        if (!mounted) return;
-
-        final duration = _player.state.duration;
-
-        // Check if video ended (within 5 seconds of the end)
-        if (duration.inSeconds > 0 &&
-            (duration.inSeconds - position.inSeconds) <= 5) {
-          widget.onVideoEnded?.call();
-          _clearSavedPosition(); // Clear saved position when video ends
-        } else {
-          // Save position every 5 seconds
-          if (position.inSeconds % 5 == 0 && position.inSeconds > 0) {
-            _savePosition(position);
-          }
+      // Parse HLS qualities once for the master playlist
+      final bool isHls = videoUrl.toLowerCase().contains('.m3u8');
+      if (isHls && _qualities.isEmpty) {
+        _masterUrl = videoUrl;
+        final parsed = await _parseHlsQualities(videoUrl);
+        if (mounted) {
+          setState(() => _qualities = parsed);
         }
+      }
 
-        // Report position changes
-        widget.onPositionChanged?.call(position);
+      // Determine start position
+      Duration? startPos = resumeAt;
+      if (startPos == null) {
+        startPos = widget.startAt ?? await _getSavedPosition();
+      }
+
+      // Build controller
+      final controller =
+          VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+
+      // initialize() resolves only when ExoPlayer reaches READY —
+      // seekTo() after this is guaranteed to be honoured.
+      await controller.initialize();
+
+      if (startPos != null && startPos.inSeconds > 0) {
+        await controller.seekTo(startPos);
+        if (mounted && startPos.inSeconds > 10 && resumeAt == null) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Resuming from ${_formatDuration(startPos)}'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.black87,
+          ));
+        }
+      }
+
+      controller.addListener(_playerListener);
+
+      _savePositionTimer =
+          Timer.periodic(const Duration(seconds: 5), (_) {
+        if (_controller != null && !_hasError && !_endedFired) {
+          _savePosition(_controller!.value.position);
+        }
       });
 
-      // Listen for errors
-      _errorSubscription = _player.stream.error.listen((error) {
-        if (!mounted) return;
+      if (widget.autoPlay) await controller.play();
 
+      if (mounted) {
+        setState(() {
+          _controller = controller;
+          _isInitialized = true;
+          _hasError = false;
+          _endedFired = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           _hasError = true;
-          _errorMessage = error;
+          _errorMessage = e.toString();
         });
-      });
-
-      // Listen for available video tracks (for quality selection)
-      _tracksSubscription = _player.stream.tracks.listen((tracks) {
-        if (!mounted) return;
-
-        debugPrint('Available video tracks: ${tracks.video.length}');
-        for (var track in tracks.video) {
-          debugPrint(
-              'Track: id=${track.id}, title=${track.title}, w=${track.w}, h=${track.h}');
-        }
-        setState(() {
-          _videoTracks = tracks.video;
-        });
-      });
-
-      // Listen for current video track changes
-      _trackSubscription = _player.stream.track.listen((track) {
-        if (!mounted) return;
-
-        setState(() {
-          _currentVideoTrack = track.video;
-        });
-      });
-
-      setState(() {
-        _isInitialized = true;
-        _hasError = false;
-      });
-    } catch (e) {
-      setState(() {
-        _hasError = true;
-        _errorMessage = e.toString();
-      });
-    }
-  }
-
-  Future<void> _retryInitialization() async {
-    setState(() {
-      _isInitialized = false;
-      _hasError = false;
-      _errorMessage = null;
-    });
-    await _initializePlayer();
-  }
-
-  // Fetch and parse HLS master playlist to extract quality levels for web
-  Future<void> _fetchWebQualityLevels(String url) async {
-    try {
-      debugPrint('Fetching HLS quality levels from: $url');
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final playlist = response.body;
-        final lines = playlist.split('\n');
-
-        List<Map<String, dynamic>> qualities = [];
-
-        for (int i = 0; i < lines.length; i++) {
-          final line = lines[i].trim();
-
-          // Look for #EXT-X-STREAM-INF lines (master playlist)
-          if (line.startsWith('#EXT-X-STREAM-INF:')) {
-            // Extract resolution
-            final resolutionMatch =
-                RegExp(r'RESOLUTION=(\d+)x(\d+)').firstMatch(line);
-            final bandwidthMatch = RegExp(r'BANDWIDTH=(\d+)').firstMatch(line);
-
-            if (resolutionMatch != null && i + 1 < lines.length) {
-              final width = int.parse(resolutionMatch.group(1)!);
-              final height = int.parse(resolutionMatch.group(2)!);
-              final bandwidth = bandwidthMatch != null
-                  ? int.parse(bandwidthMatch.group(1)!)
-                  : 0;
-
-              // Next line should be the variant playlist URL
-              final variantUrl = lines[i + 1].trim();
-
-              // Make URL absolute if it's relative
-              final fullUrl = variantUrl.startsWith('http')
-                  ? variantUrl
-                  : url.substring(0, url.lastIndexOf('/') + 1) + variantUrl;
-
-              qualities.add({
-                'width': width,
-                'height': height,
-                'bandwidth': bandwidth,
-                'label': '${height}p',
-                'url': fullUrl,
-              });
-            }
-          }
-        }
-
-        // Sort by height (quality)
-        qualities.sort((a, b) => a['height'].compareTo(b['height']));
-
-        setState(() {
-          _webQualityLevels = qualities;
-        });
-
-        debugPrint(
-            'Found ${qualities.length} quality levels: ${qualities.map((q) => q['label']).join(', ')}');
       }
-    } catch (e) {
-      debugPrint('Error fetching HLS quality levels: $e');
     }
   }
+
+  void _playerListener() {
+    if (!mounted || _controller == null) return;
+    final value = _controller!.value;
+    widget.onPositionChanged?.call(value.position);
+
+    if (!_endedFired &&
+        value.duration.inSeconds > 0 &&
+        (value.duration.inSeconds - value.position.inSeconds) <= 2) {
+      _endedFired = true;
+      widget.onVideoEnded?.call();
+      _clearSavedPosition();
+    }
+  }
+
+  // ─── Quality switching ────────────────────────────────────────────────────
+
+  Future<void> _switchQuality(int index) async {
+    // Save current position before tearing down
+    final currentPos = _controller?.value.position ?? Duration.zero;
+
+    // -1 → Auto (master playlist), otherwise specific variant
+    final newUrl = index == -1
+        ? _masterUrl ?? widget.videoUrl
+        : _qualities[index].url;
+
+    setState(() {
+      _selectedQualityIndex = index;
+      _isInitialized = false;
+    });
+
+    await _initializePlayer(url: newUrl, resumeAt: currentPos);
+  }
+
+  // ─── Fullscreen / controls ────────────────────────────────────────────────
 
   void _enterFullScreen() async {
-    if (!_isFullScreen) {
-      // Set orientation FIRST before updating UI state
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-
-      // Then hide system UI
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-
-      // Finally update the UI state
-      setState(() {
-        _isFullScreen = true;
-        _showControls = true;
-      });
-
-      _startHideControlsTimer();
-    }
+    if (_isFullScreen) return;
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+    setState(() {
+      _isFullScreen = true;
+      _showControls = true;
+    });
+    _startHideControlsTimer();
   }
 
   void _exitFullScreen() async {
-    if (_isFullScreen) {
-      // First restore portrait orientation
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
-
-      // Then show system UI again
-      await SystemChrome.setEnabledSystemUIMode(
-        SystemUiMode.manual,
-        overlays: SystemUiOverlay.values,
-      );
-
-      // Update UI state
-      setState(() {
-        _isFullScreen = false;
-      });
-
-      // If we were auto-fullscreen (dialog mode), close the dialog when exiting fullscreen
-      if (widget.autoFullScreen && mounted) {
-        Navigator.of(context).pop();
-      }
-    }
+    if (!_isFullScreen) return;
+    await SystemChrome.setPreferredOrientations(
+        [DeviceOrientation.portraitUp]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: SystemUiOverlay.values);
+    setState(() => _isFullScreen = false);
+    if (widget.autoFullScreen && mounted) Navigator.of(context).pop();
   }
 
-  void _toggleFullScreen() {
-    if (_isFullScreen) {
-      _exitFullScreen();
-    } else {
-      _enterFullScreen();
-    }
-  }
+  void _toggleFullScreen() =>
+      _isFullScreen ? _exitFullScreen() : _enterFullScreen();
 
   void _toggleControls() {
-    setState(() {
-      _showControls = !_showControls;
-    });
-
-    if (_showControls) {
-      _startHideControlsTimer();
-    }
+    setState(() => _showControls = !_showControls);
+    if (_showControls) _startHideControlsTimer();
   }
 
   void _startHideControlsTimer() {
-    // Auto-hide controls after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && _showControls && _isFullScreen) {
-        setState(() {
-          _showControls = false;
-        });
-      }
+    _hideControlsTimer?.cancel();
+    _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && _isFullScreen) setState(() => _showControls = false);
     });
   }
 
-  void _showQualitySettings() {
+  // ─── Quality bottom sheet ─────────────────────────────────────────────────
+
+  void _showQualityMenu() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black87,
       isScrollControlled: true,
-      builder: (BuildContext context) {
-        // Use web quality levels if available (for HLS on web)
-        final bool useWebQualities = kIsWeb && _webQualityLevels.isNotEmpty;
-
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.6,
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Video Quality',
+      builder: (_) => Container(
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Video Quality',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Scrollable list of quality options
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Auto quality option
-                      ListTile(
-                        title: const Text(
-                          'Auto',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        subtitle: const Text(
-                          'Automatic quality selection',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  // Auto
+                  ListTile(
+                    title: const Text('Auto',
+                        style: TextStyle(color: Colors.white)),
+                    subtitle: const Text('Adaptive (recommended)',
+                        style:
+                            TextStyle(color: Colors.white54, fontSize: 12)),
+                    leading: Radio<int>(
+                      value: -1,
+                      groupValue: _selectedQualityIndex,
+                      onChanged: (v) {
+                        Navigator.pop(context);
+                        _switchQuality(-1);
+                      },
+                      activeColor: Colors.red,
+                    ),
+                  ),
+                  // Specific qualities (highest first)
+                  ..._qualities.asMap().entries.map((e) => ListTile(
+                        title: Text(e.value.label,
+                            style: const TextStyle(color: Colors.white)),
                         leading: Radio<int>(
-                          value: -1,
-                          groupValue: useWebQualities
-                              ? _currentWebQualityIndex
-                              : (_currentVideoTrack.id == 'auto' ? -1 : 0),
-                          onChanged: (value) {
-                            if (useWebQualities) {
-                              _setWebQuality(-1);
-                            } else {
-                              _player.setVideoTrack(VideoTrack.auto());
-                            }
+                          value: e.key,
+                          groupValue: _selectedQualityIndex,
+                          onChanged: (v) {
                             Navigator.pop(context);
+                            _switchQuality(e.key);
                           },
                           activeColor: Colors.red,
                         ),
-                      ),
-                      // Web quality levels (for HLS on web)
-                      if (useWebQualities)
-                        ..._webQualityLevels.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final quality = entry.value;
-
-                          return ListTile(
-                            title: Text(
-                              quality['label'],
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            subtitle: Text(
-                              '${quality['width']}x${quality['height']}',
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 12),
-                            ),
-                            leading: Radio<int>(
-                              value: index,
-                              groupValue: _currentWebQualityIndex,
-                              onChanged: (value) {
-                                _setWebQuality(index);
-                                Navigator.pop(context);
-                              },
-                              activeColor: Colors.red,
-                            ),
-                          );
-                        }),
-                      // Available video tracks (for native platforms)
-                      if (!useWebQualities && _videoTracks.isNotEmpty)
-                        ..._videoTracks.map((track) {
-                          // Extract quality info from track id or title
-                          String label = track.title ?? track.id;
-
-                          // Try to extract resolution from track info
-                          if (track.w != null && track.h != null) {
-                            label = '${track.h}p';
-                            if (track.fps != null) {
-                              label += ' (${track.fps?.round()} fps)';
-                            }
-                          }
-
-                          return ListTile(
-                            title: Text(
-                              label,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            subtitle: track.w != null && track.h != null
-                                ? Text(
-                                    '${track.w}x${track.h}',
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 12),
-                                  )
-                                : null,
-                            leading: Radio<String>(
-                              value: track.id,
-                              groupValue: _currentVideoTrack.id,
-                              onChanged: (value) {
-                                _player.setVideoTrack(track);
-                                Navigator.pop(context);
-                              },
-                              activeColor: Colors.red,
-                            ),
-                          );
-                        }),
-                    ],
-                  ),
-                ),
+                      )),
+                ],
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  // Set quality for web (reload video with specific quality URL)
-  void _setWebQuality(int index) async {
-    // For now, just update the UI state
-    // TODO: Proper HLS quality switching requires native browser HLS API
-    // which media_kit doesn't expose on web platform
-    if (mounted) {
-      setState(() {
-        _currentWebQualityIndex = index;
-      });
-    }
-  }
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: !_isFullScreen,
-      onPopInvoked: (bool didPop) {
-        if (!didPop && _isFullScreen) {
-          _exitFullScreen();
-        }
+      onPopInvokedWithResult: (bool didPop, _) {
+        if (!didPop && _isFullScreen) _exitFullScreen();
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -549,24 +400,23 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
             ? null
             : AppBar(
                 backgroundColor: Colors.black,
-                title: Text(
-                  widget.title,
-                  style: const TextStyle(color: Colors.white),
-                ),
+                title: Text(widget.title,
+                    style: const TextStyle(color: Colors.white)),
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 actions: [
-                  // Quality settings button
-                  IconButton(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    onPressed: _showQualitySettings,
-                  ),
-                  // Fullscreen button
+                  if (_qualities.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.hd, color: Colors.white),
+                      onPressed: _showQualityMenu,
+                    ),
                   IconButton(
                     icon: Icon(
-                      _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                      _isFullScreen
+                          ? Icons.fullscreen_exit
+                          : Icons.fullscreen,
                       color: Colors.white,
                     ),
                     onPressed: _toggleFullScreen,
@@ -575,18 +425,13 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
               ),
         body: GestureDetector(
           onTap: () {
-            if (_isFullScreen) {
-              _toggleControls();
-            }
+            if (_isFullScreen) _toggleControls();
           },
           child: Stack(
             children: [
-              _buildVideoPlayer(),
-              // Custom controls overlay (always show in normal mode, toggle in fullscreen)
-              if (!_isFullScreen || _showControls)
-                _buildCustomControlsOverlay(),
-              // Fullscreen top bar
-              if (_isFullScreen && _showControls) _buildFullscreenControls(),
+              _buildVideoSurface(),
+              if (!_isFullScreen || _showControls) _buildControls(),
+              if (_isFullScreen && _showControls) _buildFullscreenTopBar(),
             ],
           ),
         ),
@@ -594,104 +439,35 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
     );
   }
 
-  Widget _buildFullscreenControls() {
-    return AnimatedOpacity(
-      opacity: _showControls ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 300),
-      child: Stack(
-        children: [
-          // Top controls bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Back button
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back,
-                            color: Colors.white, size: 28),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      // Title
-                      Expanded(
-                        child: Text(
-                          widget.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      // Quality settings button
-                      IconButton(
-                        icon: const Icon(Icons.settings,
-                            color: Colors.white, size: 28),
-                        onPressed: _showQualitySettings,
-                      ),
-                      // Fullscreen button
-                      IconButton(
-                        icon: const Icon(Icons.fullscreen_exit,
-                            color: Colors.white, size: 28),
-                        onPressed: _toggleFullScreen,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVideoPlayer() {
+  Widget _buildVideoSurface() {
     if (_hasError) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 64,
-            ),
+            const Icon(Icons.error_outline, color: Colors.red, size: 64),
             const SizedBox(height: 16),
-            const Text(
-              'Failed to load video',
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
+            const Text('Failed to load video',
+                style: TextStyle(color: Colors.white, fontSize: 18)),
             const SizedBox(height: 8),
-            Text(
-              _errorMessage ?? 'Unknown error',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-              textAlign: TextAlign.center,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(_errorMessage ?? 'Unknown error',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  textAlign: TextAlign.center),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _retryInitialization,
+              onPressed: () {
+                setState(() {
+                  _hasError = false;
+                  _isInitialized = false;
+                });
+                _initializePlayer();
+              },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white),
               child: const Text('Retry'),
             ),
           ],
@@ -699,194 +475,227 @@ class _MediaKitVideoPlayerState extends State<MediaKitVideoPlayer> {
       );
     }
 
-    if (!_isInitialized) {
+    if (!_isInitialized || _controller == null) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: Colors.red,
-        ),
-      );
+          child: CircularProgressIndicator(color: Colors.red));
     }
 
     return Center(
-      child: Video(
-        controller: _videoController,
-        // Use NoVideoControls since we have custom controls
-        controls: NoVideoControls,
+      child: AspectRatio(
+        aspectRatio: _controller!.value.aspectRatio,
+        child: VideoPlayer(_controller!),
       ),
     );
   }
 
-  Widget _buildCustomControlsOverlay() {
-    return StreamBuilder<bool>(
-      stream: _player.stream.playing,
-      builder: (context, playingSnapshot) {
-        final isPlaying = playingSnapshot.data ?? false;
+  Widget _buildControls() {
+    if (!_isInitialized || _controller == null) return const SizedBox.shrink();
 
-        return StreamBuilder<Duration>(
-          stream: _player.stream.position,
-          // Only rebuild when position changes significantly (every 100ms)
-          builder: (context, positionSnapshot) {
-            final position = positionSnapshot.data ?? Duration.zero;
+    return ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: _controller!,
+      builder: (context, value, _) {
+        final position = value.position;
+        final duration = value.duration;
+        final isPlaying = value.isPlaying;
+        final isBuffering = value.isBuffering;
+        final progress = duration.inMilliseconds > 0
+            ? (position.inMilliseconds / duration.inMilliseconds)
+                .clamp(0.0, 1.0)
+            : 0.0;
 
-            return StreamBuilder<Duration>(
-              stream: _player.stream.duration,
-              builder: (context, durationSnapshot) {
-                final duration = durationSnapshot.data ?? Duration.zero;
-
-                // Optimize progress calculation to avoid unnecessary rebuilds
-                final progress = duration.inMilliseconds > 0
-                    ? (position.inMilliseconds / duration.inMilliseconds)
-                        .clamp(0.0, 1.0)
-                    : 0.0;
-
-                return Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.7),
-                      ],
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Color(0xB3000000)],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Buffering spinner overlaid at center (doesn't block controls)
+              if (isBuffering)
+                const Expanded(
+                  child: Center(
+                      child: CircularProgressIndicator(
+                          color: Colors.red, strokeWidth: 2)),
+                )
+              else
+                const Spacer(),
+              // Seek bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Text(_formatDuration(position),
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 12)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 2,
+                          thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6),
+                          overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 14),
+                        ),
+                        child: Slider(
+                          value: _isDraggingSlider
+                              ? _dragSliderValue
+                              : progress,
+                          onChangeStart: (v) => setState(() {
+                            _isDraggingSlider = true;
+                            _dragSliderValue = v;
+                          }),
+                          onChanged: (v) =>
+                              setState(() => _dragSliderValue = v),
+                          onChangeEnd: (v) {
+                            _controller!.seekTo(Duration(
+                                milliseconds:
+                                    (v * duration.inMilliseconds).round()));
+                            setState(() => _isDraggingSlider = false);
+                          },
+                          activeColor: Colors.red,
+                          inactiveColor: Colors.white38,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      // Progress bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            Text(
-                              _formatDuration(position),
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 12),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  trackHeight: 2.0,
-                                  thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 6.0),
-                                  overlayShape: const RoundSliderOverlayShape(
-                                      overlayRadius: 14.0),
-                                ),
-                                child: Slider(
-                                  value: progress,
-                                  onChanged: (value) {
-                                    final newPosition = Duration(
-                                      milliseconds:
-                                          (value * duration.inMilliseconds)
-                                              .round(),
-                                    );
-                                    _player.seek(newPosition);
-                                  },
-                                  activeColor: Colors.red,
-                                  inactiveColor: Colors.grey.shade700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _formatDuration(duration),
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 12),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(width: 8),
+                    Text(_formatDuration(duration),
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 12)),
+                  ],
+                ),
+              ),
+              // Playback buttons row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Quality button (bottom bar, visible in fullscreen too)
+                    if (_qualities.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.hd,
+                            color: Colors.white, size: 24),
+                        onPressed: _showQualityMenu,
                       ),
-                      // Control buttons
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Rewind 10s
-                            IconButton(
-                              icon: const Icon(Icons.replay_10,
-                                  color: Colors.white, size: 32),
-                              onPressed: () {
-                                final newPosition =
-                                    position - const Duration(seconds: 10);
-                                _player.seek(newPosition < Duration.zero
-                                    ? Duration.zero
-                                    : newPosition);
-                              },
-                            ),
-                            const SizedBox(width: 24),
-                            // Play/Pause
-                            IconButton(
-                              icon: Icon(
-                                isPlaying ? Icons.pause : Icons.play_arrow,
-                                color: Colors.white,
-                                size: 48,
-                              ),
-                              onPressed: () {
-                                _player.playOrPause();
-                              },
-                            ),
-                            const SizedBox(width: 24),
-                            // Forward 10s
-                            IconButton(
-                              icon: const Icon(Icons.forward_10,
-                                  color: Colors.white, size: 32),
-                              onPressed: () {
-                                final newPosition =
-                                    position + const Duration(seconds: 10);
-                                _player.seek(newPosition > duration
-                                    ? duration
-                                    : newPosition);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.replay_10,
+                          color: Colors.white, size: 32),
+                      onPressed: () {
+                        final np = position - const Duration(seconds: 10);
+                        _controller!.seekTo(
+                            np < Duration.zero ? Duration.zero : np);
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: Icon(
+                          isPlaying ? Icons.pause : Icons.play_arrow,
+                          color: Colors.white,
+                          size: 48),
+                      onPressed: () => isPlaying
+                          ? _controller!.pause()
+                          : _controller!.play(),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: const Icon(Icons.forward_10,
+                          color: Colors.white, size: 32),
+                      onPressed: () {
+                        final np = position + const Duration(seconds: 10);
+                        _controller!.seekTo(
+                            np > duration ? duration : np);
+                      },
+                    ),
+                    const Spacer(),
+                    // Fullscreen toggle in bottom bar
+                    IconButton(
+                      icon: Icon(
+                          _isFullScreen
+                              ? Icons.fullscreen_exit
+                              : Icons.fullscreen,
+                          color: Colors.white,
+                          size: 24),
+                      onPressed: _toggleFullScreen,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
+  Widget _buildFullscreenTopBar() {
+    return AnimatedOpacity(
+      opacity: _showControls ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 300),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xB3000000), Colors.transparent],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 28),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: Text(widget.title,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Dispose ──────────────────────────────────────────────────────────────
+
   @override
   void dispose() {
-    // Cancel all stream subscriptions first
-    _positionSubscription?.cancel();
-    _errorSubscription?.cancel();
-    _tracksSubscription?.cancel();
-    _trackSubscription?.cancel();
-
-    // Save current position before disposing
-    if (_isInitialized && !_hasError) {
-      final position = _player.state.position;
-      final duration = _player.state.duration;
-
-      // Only save if video hasn't ended (not within last 5 seconds)
-      if (duration.inSeconds > 0 &&
-          (duration.inSeconds - position.inSeconds) > 5 &&
-          position.inSeconds > 0) {
-        _savePosition(position);
+    _hideControlsTimer?.cancel();
+    _savePositionTimer?.cancel();
+    if (_controller != null && !_hasError && !_endedFired) {
+      final pos = _controller!.value.position;
+      final dur = _controller!.value.duration;
+      if (dur.inSeconds > 0 &&
+          pos.inSeconds > 0 &&
+          (dur.inSeconds - pos.inSeconds) > 5) {
+        _savePosition(pos);
       }
     }
-
-    _player.dispose();
+    _controller?.removeListener(_playerListener);
+    _controller?.dispose();
     WakelockPlus.disable();
-
-    // Reset system UI when leaving video player
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: SystemUiOverlay.values);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
 }

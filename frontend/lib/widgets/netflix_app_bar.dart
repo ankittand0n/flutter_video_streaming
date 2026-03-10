@@ -8,7 +8,6 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
   final double scrollOffset;
   final String? name;
   final Duration _duration = const Duration(milliseconds: 150);
-  late final bottom = scrollOffset < 64.00 ? scrollOffset : 64.00;
 
   NetflixHeader({required this.scrollOffset, this.name});
 
@@ -20,11 +19,8 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
         status.state != AnimationStatus.reverse ? 1.0 : 0.0;
     final canPop = GoRouter.of(context).canPop();
 
-    final location = GoRouterState.of(context).location;
-    final isTvShowsPage = location.contains('tvshows');
-    final opacity = isTvShowsPage
-        ? (status.state == AnimationStatus.completed ? 1.0 : 0.0)
-        : (status.state == AnimationStatus.forward ? 0.0 : 1.0);
+    final opacity =
+        status.state == AnimationStatus.forward ? 0.0 : 1.0;
 
     final backdrop =
         Colors.black.withOpacity((scrollOffset / 100).clamp(0, .8).toDouble());
@@ -51,7 +47,6 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
                             opacity: backButtonOpacity,
                             child: IconButton(
                                 onPressed: () {
-                                  // Navigator.pop(context);
                                   context.pop();
                                 },
                                 icon: const Icon(LucideIcons.arrowLeft)),
@@ -78,7 +73,6 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
                           context.push('/home/search');
                         },
                         icon: const Icon(LucideIcons.search)),
-                    // Profile navigation
                     IconButton(
                       onPressed: () {
                         context.push('/profile');
@@ -91,132 +85,20 @@ class NetflixHeader extends SliverPersistentHeaderDelegate {
             ),
           ),
         ),
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 100),
-          bottom: bottom,
-          left: 0,
-          width: MediaQuery.of(context).size.width,
-          child: ClipRect(
-            clipBehavior: Clip.hardEdge,
-            clipper: RectCustomClipper(bottom: bottom),
-            child: Row(
-              mainAxisAlignment: isTvShowsPage
-                  ? MainAxisAlignment.start
-                  : MainAxisAlignment.spaceEvenly,
-              children: [
-                Hero(
-                  tag: 'tvshows32',
-                  child: FittedBox(
-                    child: TextButton(
-                      style: ButtonStyle(
-                        foregroundColor: WidgetStateProperty.all(Colors.white),
-                        overlayColor:
-                            WidgetStateProperty.all(Colors.transparent),
-                        splashFactory: NoSplash.splashFactory,
-                      ),
-                      onPressed: () {
-                        context.goNamed('TV Shows');
-                      },
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'TV Shows',
-                              style: isTvShowsPage
-                                  ? const TextStyle(fontSize: 22.0)
-                                  : const TextStyle(fontSize: 16.0),
-                            ),
-                            if (isTvShowsPage) ...[
-                              const SizedBox(
-                                width: 8.0,
-                              ),
-                              AnimatedOpacity(
-                                duration: _duration,
-                                opacity: opacity,
-                                child: const Icon(
-                                  LucideIcons.chevronDown,
-                                  size: 16.0,
-                                ),
-                              )
-                            ]
-                          ]),
-                    ),
-                  ),
-                ),
-                if (!isTvShowsPage)
-                  Opacity(
-                    opacity: opacity,
-                    child: TextButton(
-                        style: ButtonStyle(
-                          foregroundColor:
-                              WidgetStateProperty.all(Colors.white),
-                          overlayColor:
-                              WidgetStateProperty.all(Colors.transparent),
-                          splashFactory: NoSplash.splashFactory,
-                        ),
-                        onPressed: () {},
-                        child: const Text(
-                          'Movies',
-                          style: TextStyle(fontSize: 16.0),
-                        )),
-                  ),
-                Opacity(
-                  opacity: opacity,
-                  child: TextButton(
-                    style: ButtonStyle(
-                      foregroundColor: WidgetStateProperty.all(Colors.white),
-                      overlayColor: WidgetStateProperty.all(Colors.transparent),
-                      splashFactory: NoSplash.splashFactory,
-                    ),
-                    onPressed: () {},
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${isTvShowsPage && opacity == 1.0 ? 'All ' : ''}Categories',
-                            style: const TextStyle(fontSize: 16.0),
-                          ),
-                          const SizedBox(
-                            width: 8.0,
-                          ),
-                          const Icon(
-                            LucideIcons.chevronDown,
-                            size: 16.0,
-                          )
-                        ]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
 
   @override
-  double get maxExtent => 164.8 - bottom;
+  double get maxExtent => 100.8;
 
   @override
-  double get minExtent => 164.8 - bottom;
+  double get minExtent => 100.8;
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
     return true;
   }
-}
-
-class RectCustomClipper extends CustomClipper<Rect> {
-  const RectCustomClipper({required this.bottom});
-
-  final double bottom;
-
-  @override
-  Rect getClip(Size size) => Rect.fromLTWH(0, bottom, size.width, size.height);
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Rect> oldClipper) =>
-      oldClipper != this;
 }
 
 class NetflixBottomHeader extends SliverPersistentHeaderDelegate {
