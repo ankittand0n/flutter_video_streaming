@@ -134,6 +134,11 @@ app.use('/admin', express.static(adminDistPath));
 // Also serve admin at root for direct access
 app.use(express.static(adminDistPath));
 
+// Privacy policy page (must come before the SPA catch-all)
+app.get('/privacy-policy', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/privacy-policy.html'));
+});
+
 // SPA fallback - serve index.html ONLY for non-API GET requests
 app.get('*', (req, res, next) => {
   // If it's an API request, let it fall through to error handler

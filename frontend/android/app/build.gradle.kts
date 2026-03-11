@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "com.officialnamkeentv.namkeen_tv"
         minSdkVersion(flutter.minSdkVersion)
-        targetSdk = 34
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
