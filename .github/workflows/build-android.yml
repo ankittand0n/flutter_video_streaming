@@ -48,7 +48,7 @@ jobs:
       # Leave the secrets unset to fall back to debug signing.
       # -------------------------------------------------------
       - name: Decode keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: secrets.KEYSTORE_BASE64
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $RUNNER_TEMP/release.jks
           echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> $GITHUB_ENV
