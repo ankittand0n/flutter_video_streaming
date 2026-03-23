@@ -3,6 +3,7 @@ import Header from './ui/Header'
 import Card from './ui/Card'
 import Controls from './ui/Controls'
 import Login from './ui/Login'
+import Footer from './ui/Footer'
 import MovieForm from './ui/MovieForm'
 import TVSeriesForm from './ui/TVSeriesForm'
 import api from './services/api'
@@ -101,7 +102,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header token={token} onToken={setToken} onSignout={handleSignout} />
       {!token ? (
         <main className="p-6 pt-6">
@@ -180,6 +181,7 @@ const App: React.FC = () => {
           onCancel={handleFormCancel}
         />
       )}
+      <Footer />
     </div>
   )
 }
