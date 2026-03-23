@@ -145,6 +145,10 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
+  // If it's a static file or special page, let it through
+  if (req.path.startsWith('/privacy-policy')) {
+    return next();
+  }
   // Otherwise serve admin SPA
   res.sendFile(path.join(adminDistPath, 'index.html'));
 });
