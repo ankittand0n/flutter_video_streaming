@@ -7,6 +7,7 @@ import 'package:namkeen_tv/screens/netflix_scaffold.dart';
 import 'package:namkeen_tv/screens/login_screen.dart';
 import 'package:namkeen_tv/screens/register_screen.dart';
 import 'package:namkeen_tv/screens/profile_screen.dart';
+import 'package:namkeen_tv/screens/privacy_policy_screen.dart';
 import 'package:namkeen_tv/screens/search_screen.dart';
 import 'package:namkeen_tv/services/auth_service.dart';
 import 'package:namkeen_tv/services/cast_service.dart';
@@ -75,9 +76,10 @@ class NamkeenTvApp extends StatelessWidget {
       final currentPath = state.location;
       final isLoginRoute = currentPath == '/login';
       final isRegisterRoute = currentPath == '/register';
+      final isPrivacyPolicyRoute = currentPath == '/privacy-policy';
 
       // If not logged in and trying to access protected routes, redirect to login
-      if (!isLoggedIn && !isLoginRoute && !isRegisterRoute) {
+      if (!isLoggedIn && !isLoginRoute && !isRegisterRoute && !isPrivacyPolicyRoute) {
         return '/login';
       }
 
@@ -99,6 +101,14 @@ class NamkeenTvApp extends StatelessWidget {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      // Privacy Policy route - public access
+      GoRoute(
+        name: 'PrivacyPolicy',
+        path: '/privacy-policy',
+        builder: (BuildContext context, GoRouterState state) {
+          return const PrivacyPolicyScreen();
+        },
       ),
       // Profile route removed
       ShellRoute(
