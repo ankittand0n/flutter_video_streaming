@@ -21,8 +21,12 @@ class TrendingMovieListWeeklyBloc extends Bloc<MovieEvent, MovieState> {
   TrendingMovieListWeeklyBloc({required this.repository})
       : super(MovieInitial()) {
     on<FetchTrendingMovieListWeekly>((event, emit) async {
-      emit(
-          TrendingMovieListWeekly(await repository.getTrending(type: 'movie')));
+      try {
+        emit(
+            TrendingMovieListWeekly(await repository.getTrending(type: 'movie')));
+      } catch (e) {
+        emit(TrendingMovieListWeekly(const []));
+      }
     });
   }
 }
@@ -32,8 +36,12 @@ class TrendingMovieListDailyBloc extends Bloc<MovieEvent, MovieState> {
   TrendingMovieListDailyBloc({required this.repository})
       : super(MovieInitial()) {
     on<FetchTrendingMovieListDaily>((event, emit) async {
-      emit(TrendingMovieListDaily(
-          await repository.getTrending(type: 'movie', time: 'day')));
+      try {
+        emit(TrendingMovieListDaily(
+            await repository.getTrending(type: 'movie', time: 'day')));
+      } catch (e) {
+        emit(TrendingMovieListDaily(const []));
+      }
     });
   }
 }
@@ -43,7 +51,11 @@ class TrendingTvShowListWeeklyBloc extends Bloc<MovieEvent, MovieState> {
   TrendingTvShowListWeeklyBloc({required this.repository})
       : super(MovieInitial()) {
     on<FetchTrendingTvShowListWeekly>((event, emit) async {
-      emit(TrendingTvShowLisWeekly(await repository.getTrending(type: 'tv')));
+      try {
+        emit(TrendingTvShowLisWeekly(await repository.getTrending(type: 'tv')));
+      } catch (e) {
+        emit(TrendingTvShowLisWeekly(const []));
+      }
     });
   }
 }
@@ -53,8 +65,12 @@ class TrendingTvShowListDailyBloc extends Bloc<MovieEvent, MovieState> {
   TrendingTvShowListDailyBloc({required this.repository})
       : super(MovieInitial()) {
     on<FetchTrendingTvShowListDaily>((event, emit) async {
-      emit(TrendingTvShowListDaily(
-          await repository.getTrending(type: 'tv', time: 'day')));
+      try {
+        emit(TrendingTvShowListDaily(
+            await repository.getTrending(type: 'tv', time: 'day')));
+      } catch (e) {
+        emit(TrendingTvShowListDaily(const []));
+      }
     });
   }
 }
@@ -63,7 +79,11 @@ class ConfigurationBloc extends Bloc<ConfigurationEvent, ConfigurationState> {
   final TMDBRepository repository;
   ConfigurationBloc({required this.repository}) : super(ConfigurationState()) {
     on<FetchConfiguration>((event, emit) async {
-      emit(ConfigurationState(data: await repository.getConfiguration()));
+      try {
+        emit(ConfigurationState(data: await repository.getConfiguration()));
+      } catch (e) {
+        emit(ConfigurationState());
+      }
     });
   }
 }
@@ -72,8 +92,12 @@ class TvShowSeasonSelectorBloc extends Bloc<MovieEvent, MovieState> {
   final TMDBRepository repository;
   TvShowSeasonSelectorBloc({required this.repository}) : super(MovieInitial()) {
     on<SelectTvShowSeason>((event, emit) async {
-      emit(SelectedTvShowSeason(
-          await repository.getSeason(event.id, event.season)));
+      try {
+        emit(SelectedTvShowSeason(
+            await repository.getSeason(event.id, event.season)));
+      } catch (e) {
+        emit(MovieInitial());
+      }
     });
   }
 }
@@ -82,7 +106,11 @@ class DiscoverTvShowsBloc extends Bloc<MovieEvent, MovieState> {
   final TMDBRepository repository;
   DiscoverTvShowsBloc({required this.repository}) : super(MovieInitial()) {
     on<DiscoverTvShowsEvent>((event, emit) async {
-      emit(DiscoverTvShows(await repository.discover('tv')));
+      try {
+        emit(DiscoverTvShows(await repository.discover('tv')));
+      } catch (e) {
+        emit(DiscoverTvShows(const []));
+      }
     });
   }
 }
@@ -91,7 +119,11 @@ class DiscoverMoviesBloc extends Bloc<MovieEvent, MovieState> {
   final TMDBRepository repository;
   DiscoverMoviesBloc({required this.repository}) : super(MovieInitial()) {
     on<DiscoverMoviesEvent>((event, emit) async {
-      emit(DiscoverMovies(await repository.discover('movie')));
+      try {
+        emit(DiscoverMovies(await repository.discover('movie')));
+      } catch (e) {
+        emit(DiscoverMovies(const []));
+      }
     });
   }
 }

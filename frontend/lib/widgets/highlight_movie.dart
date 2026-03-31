@@ -46,7 +46,12 @@ class _HighlightMovieState extends State<HighlightMovie> {
             (movies.list.isNotEmpty ? movies.list.first : null);
 
         if (randomMovie == null) {
-          return const SizedBox(); // Return empty if no movies
+          return SizedBox(
+            height: highlightHeight,
+            child: const Center(
+              child: CircularProgressIndicator(color: Colors.red),
+            ),
+          );
         }
 
         return Stack(

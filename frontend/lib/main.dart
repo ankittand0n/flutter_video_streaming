@@ -14,21 +14,33 @@ import 'package:namkeen_tv/services/cast_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'bloc/blocs.dart';
 import 'utils/utils.dart';
 import 'config/app_config.dart';
 
 void main() async {
+  // Use path-based URLs (no # in URLs) for clean web routing
+  usePathUrlStrategy();
+
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize media_kit for video/audio playback
-  MediaKit.ensureInitialized();
+  // Initialize media_kit for video/audio playback (not supported on web)
+  if (!kIsWeb) {
+    try {
+      MediaKit.ensureInitialized();
+    } catch (e) {
+      print('MediaKit initialization failed: $e');
+    }
+  }
 
-  // Initialize Cast service on web
+  // Initialize Cast service on web (non-blocking, don't delay app render)
   if (kIsWeb) {
-    await CastService.instance.initialize();
+    CastService.instance.initialize().catchError((e) {
+      print('Cast service initialization failed: $e');
+    });
   }
 
   // Print runtime configuration for debugging
@@ -67,29 +79,37 @@ class NamkeenTvApp extends StatelessWidget {
 
   final GlobalKey<NavigatorState> _navigatorState = GlobalKey<NavigatorState>();
 
+  final AuthService _authService = AuthService();
+
   late final GoRouter _router = GoRouter(
     initialLocation: '/login',
     navigatorKey: _navigatorState,
     redirect: (context, state) async {
-      final authService = AuthService();
-      final isLoggedIn = await authService.isLoggedIn();
-      final currentPath = state.location;
-      final isLoginRoute = currentPath == '/login';
-      final isRegisterRoute = currentPath == '/register';
-      final isPrivacyPolicyRoute = currentPath == '/privacy-policy';
+      try {
+        final isLoggedIn = await _authService.isLoggedIn().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => false,
+        );
+        final currentPath = state.location;
+        final isLoginRoute = currentPath == '/login';
+        final isRegisterRoute = currentPath == '/register';
+        final isPrivacyPolicyRoute = currentPath.startsWith('/privacy-policy');
 
-      // If not logged in and trying to access protected routes, redirect to login
-      if (!isLoggedIn && !isLoginRoute && !isRegisterRoute && !isPrivacyPolicyRoute) {
-        return '/login';
+        // If not logged in and trying to access protected routes, redirect to login
+        if (!isLoggedIn && !isLoginRoute && !isRegisterRoute && !isPrivacyPolicyRoute) {
+          return '/login';
+        }
+
+        // If logged in and trying to access login/register, redirect to home
+        if (isLoggedIn && (isLoginRoute || isRegisterRoute)) {
+          return '/home';
+        }
+
+        return null;
+      } catch (e) {
+        print('Redirect error: $e');
+        return null; // Allow navigation to proceed
       }
-
-      // If logged in and trying to access login/register, redirect to home
-      if (isLoggedIn && (isLoginRoute || isRegisterRoute)) {
-        return '/home';
-      }
-
-      // Allow navigation
-      return null;
     },
     routes: [
       // Login route

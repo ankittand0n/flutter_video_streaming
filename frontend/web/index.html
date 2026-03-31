@@ -53,12 +53,12 @@
   </script>
 
   <!-- HLS.js for HLS video playback support on web -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" async></script>
 
   <!-- Google Cast SDK for Chromecast support -->
-  <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+  <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1" async></script>
 
-  <!-- This script adds the flutter initialization JS code -->
+  <!-- Flutter initialization JS code -->
   <script src="flutter.js" defer></script>
   <script>
     var serviceWorkerVersion = null;
@@ -66,12 +66,26 @@
 </head>
 <body>
   <script>
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        }
-      });
+    // Boot the Flutter web app once the page loads
+    window.addEventListener('load', function () {
+      if (typeof _flutter === 'undefined' || !_flutter.loader) {
+        console.error('Flutter loader not found.');
+        return;
+      }
+
+      _flutter.loader
+        .loadEntrypoint({
+          serviceWorker: { serviceWorkerVersion: serviceWorkerVersion },
+        })
+        .then(function (engineInitializer) {
+          return engineInitializer.initializeEngine();
+        })
+        .then(function (appRunner) {
+          return appRunner.runApp();
+        })
+        .catch(function (e) {
+          console.error('Failed to start Flutter app:', e);
+        });
     });
   </script>
 </body>
